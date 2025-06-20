@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, useScroll, useTransform, useInView } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { 
   FileText, 
   Video, 
@@ -12,12 +12,16 @@ import {
   CheckCircle,
   Play,
   Menu,
-  X
+  X,
+  Star,
+  Award,
+  TrendingUp
 } from 'lucide-react'
-import { useRef, useState, Suspense } from 'react'
+import { useState } from 'react'
 import { ThemeToggle } from '@/components/ThemeToggle'
-import MorphingShape from '@/components/MorphingShape'
 import AnimatedCounter from '@/components/AnimatedCounter'
+import FloatingElements from '@/components/FloatingElements'
+import { cn } from '@/lib/utils'
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -44,17 +48,6 @@ const itemVariants = {
 
 export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { scrollYProgress } = useScroll()
-  const heroRef = useRef<HTMLElement>(null)
-  const featuresRef = useRef<HTMLElement>(null)
-  const statsRef = useRef<HTMLElement>(null)
-  
-  const heroInView = useInView(heroRef, { once: true })
-  const featuresInView = useInView(featuresRef, { once: true, margin: '-100px' })
-  const statsInView = useInView(statsRef, { once: true, margin: '-100px' })
-
-  const backgroundY = useTransform(scrollYProgress, [0, 1], ['0%', '100%'])
-  const textY = useTransform(scrollYProgress, [0, 1], ['0%', '200%'])
 
   const features = [
     {
@@ -107,13 +100,37 @@ export default function Home() {
     }
   ]
 
+  const testimonials = [
+    {
+      name: "Sarah Johnson",
+      role: "Software Developer",
+      company: "TechCorp",
+      content: "JobSpark transformed my job search. The AI CV builder helped me land interviews at top companies.",
+      rating: 5
+    },
+    {
+      name: "Michael Chen",
+      role: "Marketing Manager",
+      company: "GrowthCo",
+      content: "The interview coach feature gave me the confidence I needed. Got my dream job within 2 weeks!",
+      rating: 5
+    },
+    {
+      name: "Priya Patel",
+      role: "Data Analyst",
+      company: "DataFlow",
+      content: "Amazing platform! The direct employer connections saved me months of job searching.",
+      rating: 5
+    }
+  ]
+
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+    <div className="min-h-screen bg-background transition-colors duration-300">
       {/* Navigation */}
       <motion.nav 
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className="fixed top-0 w-full bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 z-50"
+        className="fixed top-0 w-full bg-background/80 backdrop-blur-md border-b border-border z-50"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -130,11 +147,11 @@ export default function Home() {
             </motion.div>
             
             <div className="hidden md:flex items-center space-x-8">
-              {['Features', 'How It Works', 'About'].map((item, index) => (
+              {['Features', 'How It Works', 'Testimonials'].map((item, index) => (
                 <motion.a
                   key={item}
                   href={`#${item.toLowerCase().replace(' ', '-')}`}
-                  className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
                   whileHover={{ y: -2 }}
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -157,7 +174,7 @@ export default function Home() {
               <ThemeToggle />
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="p-2 rounded-lg hover:bg-accent"
               >
                 {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
@@ -171,14 +188,14 @@ export default function Home() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
+            className="md:hidden bg-background border-t border-border"
           >
             <div className="px-4 py-4 space-y-4">
-              {['Features', 'How It Works', 'About'].map((item) => (
+              {['Features', 'How It Works', 'Testimonials'].map((item) => (
                 <a
                   key={item}
                   href={`#${item.toLowerCase().replace(' ', '-')}`}
-                  className="block text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
+                  className="block text-muted-foreground hover:text-foreground transition-colors"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {item}
@@ -193,18 +210,14 @@ export default function Home() {
       </motion.nav>
 
       {/* Hero Section */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        <motion.div
-          style={{ y: backgroundY }}
-          className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20"
-        />
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+        <FloatingElements />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid lg:grid-cols-2 gap-12 items-center relative z-10">
           <motion.div
-            style={{ y: textY }}
             variants={containerVariants}
             initial="hidden"
-            animate={heroInView ? "visible" : "hidden"}
+            animate="visible"
             className="text-center lg:text-left"
           >
             <motion.div
@@ -227,7 +240,7 @@ export default function Home() {
             
             <motion.p
               variants={itemVariants}
-              className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl leading-relaxed"
+              className="text-xl text-muted-foreground mb-8 max-w-2xl leading-relaxed"
             >
               JobSpark empowers South African talent with AI-powered tools to build perfect CVs, 
               practice interviews, and connect directly with quality employers.
@@ -250,7 +263,7 @@ export default function Home() {
               </motion.button>
               
               <motion.button
-                className="group border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-4 rounded-xl font-semibold text-lg hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 flex items-center justify-center"
+                className="group border-2 border-border text-foreground px-8 py-4 rounded-xl font-semibold text-lg hover:bg-accent transition-all duration-300 flex items-center justify-center"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -262,56 +275,71 @@ export default function Home() {
 
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
-            animate={heroInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1, delay: 0.5 }}
-            className="relative h-96 lg:h-[500px]"
+            className="relative h-96 lg:h-[500px] flex items-center justify-center"
           >
-            <Suspense fallback={<div className="w-full h-full bg-gradient-to-r from-blue-200 to-purple-200 dark:from-blue-800 dark:to-purple-800 rounded-2xl animate-pulse" />}>
-              <MorphingShape />
-            </Suspense>
+            <div className="relative w-80 h-80 lg:w-96 lg:h-96">
+              {/* Central gradient orb */}
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full blur-3xl opacity-30 animate-pulse-slow" />
+              
+              {/* Rotating rings */}
+              <div className="absolute inset-4 border-2 border-blue-500/30 rounded-full animate-spin" style={{ animationDuration: '20s' }} />
+              <div className="absolute inset-8 border-2 border-purple-500/30 rounded-full animate-spin" style={{ animationDuration: '15s', animationDirection: 'reverse' }} />
+              <div className="absolute inset-12 border-2 border-pink-500/30 rounded-full animate-spin" style={{ animationDuration: '25s' }} />
+              
+              {/* Floating icons */}
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+                className="absolute inset-0"
+              >
+                <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                  <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center shadow-lg">
+                    <FileText className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div className="absolute top-1/2 right-0 transform translate-x-1/2 -translate-y-1/2">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+                    <Video className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
+                  <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
+                    <Users className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div className="absolute top-1/2 left-0 transform -translate-x-1/2 -translate-y-1/2">
+                  <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg">
+                    <Target className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+              </motion.div>
+              
+              {/* Center logo */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-20 h-20 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
+                  <Sparkles className="w-10 h-10 text-white" />
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
-
-        {/* Floating Elements */}
-        <motion.div
-          animate={{
-            y: [0, -20, 0],
-            rotate: [0, 5, 0],
-          }}
-          transition={{
-            duration: 6,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-r from-blue-400 to-purple-400 rounded-full opacity-20 blur-xl"
-        />
-        <motion.div
-          animate={{
-            y: [0, 20, 0],
-            rotate: [0, -5, 0],
-          }}
-          transition={{
-            duration: 8,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 2,
-          }}
-          className="absolute top-40 right-20 w-16 h-16 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full opacity-20 blur-xl"
-        />
       </section>
 
       {/* Features Section */}
-      <section ref={featuresRef} id="features" className="py-20 bg-gray-50 dark:bg-gray-800/50">
+      <section id="features" className="py-20 bg-muted/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             variants={containerVariants}
             initial="hidden"
-            animate={featuresInView ? "visible" : "hidden"}
+            whileInView="visible"
+            viewport={{ once: true }}
             className="text-center mb-16"
           >
             <motion.h2
               variants={itemVariants}
-              className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4"
+              className="text-3xl md:text-5xl font-bold mb-4"
             >
               Everything You Need to{' '}
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -320,7 +348,7 @@ export default function Home() {
             </motion.h2>
             <motion.p
               variants={itemVariants}
-              className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto"
+              className="text-xl text-muted-foreground max-w-2xl mx-auto"
             >
               Our comprehensive platform prepares you for every step of your job search journey
             </motion.p>
@@ -332,23 +360,27 @@ export default function Home() {
                 key={feature.title}
                 variants={itemVariants}
                 initial="hidden"
-                animate={featuresInView ? "visible" : "hidden"}
+                whileInView="visible"
+                viewport={{ once: true }}
                 transition={{ delay: feature.delay }}
                 whileHover={{ 
                   y: -10,
                   transition: { type: "spring", stiffness: 300 }
                 }}
-                className="group bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700"
+                className="group bg-card p-8 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-border"
               >
                 <motion.div
-                  className={`w-12 h-12 bg-gradient-to-r ${feature.color} rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}
+                  className={cn(
+                    "w-12 h-12 bg-gradient-to-r rounded-xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300",
+                    feature.color
+                  )}
                 >
                   <feature.icon className="w-6 h-6 text-white" />
                 </motion.div>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+                <h3 className="text-xl font-semibold mb-3">
                   {feature.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed">
                   {feature.description}
                 </p>
               </motion.div>
@@ -358,7 +390,7 @@ export default function Home() {
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-white dark:bg-gray-900">
+      <section id="how-it-works" className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -366,13 +398,13 @@ export default function Home() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
               How JobSpark{' '}
               <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Works
               </span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               A simple, powerful process that transforms how you approach job searching
             </p>
           </motion.div>
@@ -388,16 +420,19 @@ export default function Home() {
                 className="text-center group"
               >
                 <motion.div
-                  className={`w-16 h-16 bg-gradient-to-r ${step.color} rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300`}
+                  className={cn(
+                    "w-16 h-16 bg-gradient-to-r rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300",
+                    step.color
+                  )}
                   whileHover={{ rotate: 360 }}
                   transition={{ duration: 0.6 }}
                 >
                   <span className="text-white font-bold text-xl">{step.number}</span>
                 </motion.div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
+                <h3 className="text-lg font-semibold mb-3">
                   {step.title}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-300">
+                <p className="text-muted-foreground">
                   {step.description}
                 </p>
               </motion.div>
@@ -407,7 +442,7 @@ export default function Home() {
       </section>
 
       {/* Stats Section */}
-      <section ref={statsRef} className="py-20 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
+      <section className="py-20 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
         <motion.div
           animate={{
             backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
@@ -425,19 +460,26 @@ export default function Home() {
           <motion.div
             variants={containerVariants}
             initial="hidden"
-            animate={statsInView ? "visible" : "hidden"}
+            whileInView="visible"
+            viewport={{ once: true }}
             className="grid md:grid-cols-3 gap-8 text-center text-white"
           >
             {[
-              { value: 10000, suffix: '+', label: 'Candidates Prepared' },
-              { value: 500, suffix: '+', label: 'Partner Companies' },
-              { value: 85, suffix: '%', label: 'Success Rate' }
+              { value: 10000, suffix: '+', label: 'Candidates Prepared', icon: Users },
+              { value: 500, suffix: '+', label: 'Partner Companies', icon: Award },
+              { value: 85, suffix: '%', label: 'Success Rate', icon: TrendingUp }
             ].map((stat, index) => (
               <motion.div
                 key={stat.label}
                 variants={itemVariants}
                 className="group"
               >
+                <motion.div
+                  className="flex items-center justify-center mb-4"
+                  whileHover={{ scale: 1.1 }}
+                >
+                  <stat.icon className="w-8 h-8 mr-2 opacity-80" />
+                </motion.div>
                 <motion.div
                   className="text-4xl md:text-6xl font-bold mb-2"
                   whileHover={{ scale: 1.1 }}
@@ -453,21 +495,72 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Testimonials Section */}
+      <section id="testimonials" className="py-20 bg-muted/50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-5xl font-bold mb-4">
+              What Our Users{' '}
+              <span className="bg-gradient-to-r from-green-600 to-blue-600 bg-clip-text text-transparent">
+                Say
+              </span>
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Real stories from professionals who transformed their careers with JobSpark
+            </p>
+          </motion.div>
+          
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={testimonial.name}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                whileHover={{ y: -5 }}
+                className="bg-card p-6 rounded-2xl shadow-lg border border-border"
+              >
+                <div className="flex items-center mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-muted-foreground mb-4 italic">
+                  "{testimonial.content}"
+                </p>
+                <div>
+                  <div className="font-semibold">{testimonial.name}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {testimonial.role} at {testimonial.company}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="py-20 bg-gray-50 dark:bg-gray-800/50">
+      <section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6">
+            <h2 className="text-3xl md:text-5xl font-bold mb-6">
               Ready to Transform Your{' '}
               <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Career?
               </span>
             </h2>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
               Join thousands of South African professionals who have already elevated their job search with JobSpark.
             </p>
             <motion.button
@@ -486,7 +579,7 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 dark:bg-black text-white py-12">
+      <footer className="bg-card border-t border-border py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
@@ -499,7 +592,7 @@ export default function Home() {
                 </div>
                 <span className="text-xl font-bold">JobSpark</span>
               </motion.div>
-              <p className="text-gray-400 leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed">
                 Empowering South African talent with the tools and connections needed to succeed in today's job market.
               </p>
             </div>
@@ -520,12 +613,12 @@ export default function Home() {
             ].map((section, index) => (
               <div key={section.title}>
                 <h3 className="font-semibold mb-4">{section.title}</h3>
-                <ul className="space-y-2 text-gray-400">
+                <ul className="space-y-2 text-muted-foreground">
                   {section.links.map((link) => (
                     <li key={link}>
                       <motion.a
                         href="#"
-                        className="hover:text-white transition-colors"
+                        className="hover:text-foreground transition-colors"
                         whileHover={{ x: 5 }}
                       >
                         {link}
@@ -538,7 +631,7 @@ export default function Home() {
           </div>
           
           <motion.div
-            className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400"
+            className="border-t border-border mt-12 pt-8 text-center text-muted-foreground"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}

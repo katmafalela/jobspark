@@ -1,32 +1,68 @@
 'use client'
 
-import { motion, useInView, useMotionValue, useSpring } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface AnimatedCounterProps {
   value: number
   suffix?: string
+  duration?: number
 }
 
-export default function AnimatedCounter({ value, suffix = '' }: AnimatedCounterProps) {
+export default function AnimatedCounter({ 
+  value, 
+  suffix = '', 
+  duration = 2000 
+}: AnimatedCounterProps) {
+  const [count, setCount] = useState(0)
+  const [isVisible, setIsVisible] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const motionValue = useMotionValue(0)
-  const springValue = useSpring(motionValue, { duration: 3000 })
-  const isInView = useInView(ref, { once: true, margin: '-100px' })
 
   useEffect(() => {
-    if (isInView) {
-      motionValue.set(value)
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true)
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    if (ref.current) {
+      observer.observe(ref.current)
     }
-  }, [motionValue, isInView, value])
+
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
-    springValue.on('change', (latest) => {
-      if (ref.current) {
-        ref.current.textContent = Math.floor(latest).toLocaleString() + suffix
-      }
-    })
-  }, [springValue, suffix])
+    if (!isVisible) return
 
-  return <div ref={ref} />
+    let startTime: number
+    let animationFrame: number
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime
+      const progress = Math.min((currentTime - startTime) / duration, 1)
+      
+      setCount(Math.floor(progress * value))
+      
+      if (progress < 1) {
+        animationFrame = requestAnimationFrame(animate)
+      }
+    }
+
+    animationFrame = requestAnimationFrame(animate)
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame)
+      }
+    }
+  }, [isVisible, value, duration])
+
+  return (
+    <div ref={ref}>
+      {count.toLocaleString()}{suffix}
+    </div>
+  )
 }
