@@ -27,5 +27,8 @@
     "@tailwindcss/postcss": "^4",
     "tailwindcss": "^4",
     "@types/three": "^0.160.0"
+  },
+  "overrides": {
+    "expo": "npm:@expo/cli@latest"
   }
 }
