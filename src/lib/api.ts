@@ -7,6 +7,7 @@ export interface CVData {
     phone: string;
     location: string;
     professionalSummary: string;
+    profileImageUrl: string;
   };
   experiences: Array<{
     title: string;
@@ -33,19 +34,19 @@ export interface CVData {
 export async function generateCV(data: {
   cvData: CVData;
   jobDescription?: string;
-  cvType?: 'professional' | 'creative' | 'technical' | 'executive';
+  cvType?: "professional" | "creative" | "technical" | "executive";
 }): Promise<string> {
-  const response = await fetch('/api/generate-cv', {
-    method: 'POST',
+  const response = await fetch("/api/generate-cv", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify(data),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Failed to generate CV');
+    throw new Error(error.error || "Failed to generate CV");
   }
 
   const result = await response.json();
@@ -54,13 +55,13 @@ export async function generateCV(data: {
 
 export async function enhanceProfessionalSummary(
   currentSummary: string,
-  experiences: CVData['experiences'],
+  experiences: CVData["experiences"],
   targetRole?: string
 ): Promise<string> {
-  const response = await fetch('/api/enhance-summary', {
-    method: 'POST',
+  const response = await fetch("/api/enhance-summary", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       currentSummary,
@@ -71,7 +72,7 @@ export async function enhanceProfessionalSummary(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Failed to enhance summary');
+    throw new Error(error.error || "Failed to enhance summary");
   }
 
   const result = await response.json();
@@ -83,10 +84,10 @@ export async function generateExperienceDescription(
   company: string,
   basicDescription: string
 ): Promise<string> {
-  const response = await fetch('/api/generate-experience', {
-    method: 'POST',
+  const response = await fetch("/api/generate-experience", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       jobTitle,
@@ -97,7 +98,7 @@ export async function generateExperienceDescription(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Failed to generate experience description');
+    throw new Error(error.error || "Failed to generate experience description");
   }
 
   const result = await response.json();
@@ -105,13 +106,13 @@ export async function generateExperienceDescription(
 }
 
 export async function suggestSkills(
-  experiences: CVData['experiences'],
+  experiences: CVData["experiences"],
   jobDescription?: string
 ): Promise<Array<{ name: string; level: string }>> {
-  const response = await fetch('/api/suggest-skills', {
-    method: 'POST',
+  const response = await fetch("/api/suggest-skills", {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
       experiences,
@@ -121,7 +122,7 @@ export async function suggestSkills(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error || 'Failed to suggest skills');
+    throw new Error(error.error || "Failed to suggest skills");
   }
 
   const result = await response.json();
