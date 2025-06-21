@@ -18,6 +18,7 @@ import {
   Bell,
   Send
 } from "lucide-react";
+import Link from "next/link";
 
 const DashboardPage = () => {
   const { user, loading, signOut } = useAuth();
@@ -178,22 +179,23 @@ const DashboardPage = () => {
           <h2 className="text-2xl font-bold text-slate-900 mb-6">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {quickActions.map((action, index) => (
-              <motion.div
-                key={action.title}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="relative group cursor-pointer"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl blur-xl"
-                     style={{ background: `linear-gradient(to right, var(--tw-gradient-stops))` }} />
-                <div className="relative bg-white p-6 rounded-xl border border-slate-200 shadow-sm group-hover:shadow-lg transition-all duration-300">
-                  <div className={`inline-flex p-3 rounded-lg bg-gradient-to-r ${action.color} mb-4`}>
-                    <action.icon className="w-6 h-6 text-white" />
+              <Link key={action.title} href={action.href}>
+                <motion.div
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="relative group cursor-pointer"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-xl blur-xl"
+                       style={{ background: `linear-gradient(to right, var(--tw-gradient-stops))` }} />
+                  <div className="relative bg-white p-6 rounded-xl border border-slate-200 shadow-sm group-hover:shadow-lg transition-all duration-300">
+                    <div className={`inline-flex p-3 rounded-lg bg-gradient-to-r ${action.color} mb-4`}>
+                      <action.icon className="w-6 h-6 text-white" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">{action.title}</h3>
+                    <p className="text-slate-600 text-sm">{action.description}</p>
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">{action.title}</h3>
-                  <p className="text-slate-600 text-sm">{action.description}</p>
-                </div>
-              </motion.div>
+                </motion.div>
+              </Link>
             ))}
           </div>
         </motion.div>
