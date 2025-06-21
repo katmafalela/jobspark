@@ -283,7 +283,7 @@ const CVBuilderPage = () => {
     setExperiences(experiences.filter((_, i) => i !== index));
   };
 
-  // Similar functions for education and skills...
+  // Education functions
   const addEducation = () => {
     const newEducation: Education = {
       degree: "",
@@ -311,6 +311,44 @@ const CVBuilderPage = () => {
     }
   };
 
+  const saveNewEducation = async (index: number) => {
+    const educationItem = education[index];
+    if (!educationItem.degree || !educationItem.institution || !user) return;
+
+    try {
+      const saved = await createUserEducation({
+        user_id: user.id,
+        degree: educationItem.degree,
+        institution: educationItem.institution,
+        location: educationItem.location,
+        graduation_year: educationItem.graduation_year,
+        description: educationItem.description
+      });
+
+      const updated = education.map((edu, i) => 
+        i === index ? { ...edu, id: saved.id } : edu
+      );
+      setEducation(updated);
+    } catch (error) {
+      console.error('Error saving education:', error);
+    }
+  };
+
+  const removeEducation = async (index: number) => {
+    const educationItem = education[index];
+    
+    if (educationItem.id) {
+      try {
+        await deleteUserEducation(educationItem.id);
+      } catch (error) {
+        console.error('Error deleting education:', error);
+      }
+    }
+    
+    setEducation(education.filter((_, i) => i !== index));
+  };
+
+  // Skills functions
   const addSkill = () => {
     const newSkill: Skill = {
       name: "",
@@ -333,6 +371,40 @@ const CVBuilderPage = () => {
         console.error('Error updating skill:', error);
       }
     }
+  };
+
+  const saveNewSkill = async (index: number) => {
+    const skill = skills[index];
+    if (!skill.name || !user) return;
+
+    try {
+      const saved = await createUserSkill({
+        user_id: user.id,
+        name: skill.name,
+        level: skill.level
+      });
+
+      const updated = skills.map((s, i) => 
+        i === index ? { ...s, id: saved.id } : s
+      );
+      setSkills(updated);
+    } catch (error) {
+      console.error('Error saving skill:', error);
+    }
+  };
+
+  const removeSkill = async (index: number) => {
+    const skill = skills[index];
+    
+    if (skill.id) {
+      try {
+        await deleteUserSkill(skill.id);
+      } catch (error) {
+        console.error('Error deleting skill:', error);
+      }
+    }
+    
+    setSkills(skills.filter((_, i) => i !== index));
   };
 
   const handleEnhanceSummary = async () => {
@@ -844,9 +916,6 @@ const CVBuilderPage = () => {
                   </motion.div>
                 )}
 
-                {/* Experience, Education, and Skills tabs would follow similar patterns... */}
-                {/* For brevity, I'll include the experience tab as an example */}
-
                 {activeTab === "experience" && (
                   <motion.div
                     key="experience"
@@ -1017,7 +1086,243 @@ const CVBuilderPage = () => {
                   </motion.div>
                 )}
 
-                {/* Similar implementations for education and skills tabs would go here */}
+                {activeTab === "education" && (
+                  <motion.div
+                    key="education"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="space-y-6"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-gray-800">Education</h2>
+                      <div className="flex items-center gap-3">
+                        {completionStatus.education ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-amber-500" />
+                        )}
+                        <button
+                          onClick={addEducation}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Education
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      {education.map((edu, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-800">
+                              {edu.degree || `Education #${index + 1}`}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              {!edu.id && edu.degree && edu.institution && (
+                                <button
+                                  onClick={() => saveNewEducation(index)}
+                                  className="text-green-600 hover:text-green-800 transition-colors"
+                                >
+                                  <Save className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => removeEducation(index)}
+                                className="text-red-600 hover:text-red-800 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Degree/Qualification *
+                              </label>
+                              <input
+                                type="text"
+                                value={edu.degree}
+                                onChange={(e) => updateEducationItem(index, 'degree', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., Bachelor of Science in Computer Science"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Institution *
+                              </label>
+                              <input
+                                type="text"
+                                value={edu.institution}
+                                onChange={(e) => updateEducationItem(index, 'institution', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="University/School name"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Location
+                              </label>
+                              <input
+                                type="text"
+                                value={edu.location || ''}
+                                onChange={(e) => updateEducationItem(index, 'location', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="City, Country"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Graduation Year
+                              </label>
+                              <input
+                                type="text"
+                                value={edu.graduation_year}
+                                onChange={(e) => updateEducationItem(index, 'graduation_year', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., 2023"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Description (Optional)
+                            </label>
+                            <textarea
+                              value={edu.description || ''}
+                              onChange={(e) => updateEducationItem(index, 'description', e.target.value)}
+                              rows={2}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Additional details about your education..."
+                            />
+                          </div>
+                        </div>
+                      ))}
+
+                      {education.length === 0 && (
+                        <div className="text-center py-12 text-gray-500">
+                          <GraduationCap className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                          <p>No education added yet.</p>
+                          <p className="text-sm">Click "Add Education" to get started.</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === "skills" && (
+                  <motion.div
+                    key="skills"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="space-y-6"
+                  >
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold text-gray-800">Skills</h2>
+                      <div className="flex items-center gap-3">
+                        {completionStatus.skills ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <AlertCircle className="w-5 h-5 text-amber-500" />
+                        )}
+                        <button
+                          onClick={handleSuggestSkills}
+                          disabled={suggestingSkills || experiences.length === 0}
+                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
+                        >
+                          {suggestingSkills ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Lightbulb className="w-4 h-4" />
+                          )}
+                          Suggest Skills
+                        </button>
+                        <button
+                          onClick={addSkill}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add Skill
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {skills.map((skill, index) => (
+                        <div key={index} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="font-semibold text-gray-800">
+                              {skill.name || `Skill #${index + 1}`}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                              {!skill.id && skill.name && (
+                                <button
+                                  onClick={() => saveNewSkill(index)}
+                                  className="text-green-600 hover:text-green-800 transition-colors"
+                                >
+                                  <Save className="w-4 h-4" />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => removeSkill(index)}
+                                className="text-red-600 hover:text-red-800 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Skill Name *
+                              </label>
+                              <input
+                                type="text"
+                                value={skill.name}
+                                onChange={(e) => updateSkill(index, 'name', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="e.g., JavaScript, Project Management"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Proficiency Level
+                              </label>
+                              <select
+                                value={skill.level}
+                                onChange={(e) => updateSkill(index, 'level', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              >
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                                <option value="Expert">Expert</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {skills.length === 0 && (
+                      <div className="text-center py-12 text-gray-500">
+                        <Award className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                        <p>No skills added yet.</p>
+                        <p className="text-sm">Click "Add Skill" or "Suggest Skills" to get started.</p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
               </AnimatePresence>
             </div>
           </div>
