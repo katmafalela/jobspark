@@ -1,109 +1,115 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Quote } from "lucide-react";
-import React, { useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Quote, ArrowLeft, ArrowRight } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import Image from "next/image";
 
-const TestimonialCard = ({ testimonial }: { testimonial: any }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+const testimonials = [
+    { name: "Thabo Ndlovu", role: "Software Engineer, Vodacom", content: "JobSpark's AI CV builder is a game-changer. It helped me highlight my skills in a way I never could have on my own. I landed my dream job in just three weeks.", avatar: "/avatars/men-32.jpg" },
+    { name: "Aisha Khan", role: "Marketing Manager, Takealot", content: "The interview prep tool was incredible. I went into my interviews feeling so much more confident and prepared. It made all the difference.", avatar: "/avatars/women-44.jpg" },
+    { name: "Michael Botha", role: "Data Analyst, Standard Bank", content: "A fantastic platform for the South African market. The direct connections to employers are invaluable. I received three offers!", avatar: "/avatars/men-46.jpg" },
+];
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (cardRef.current) {
-      const rect = cardRef.current.getBoundingClientRect();
-      setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
-    }
-  };
-
-  return (
-    <motion.div
-      ref={cardRef}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => setMousePos({ x: -999, y: -999 })} // Hide spotlight on leave
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5 }}
-      className="relative bg-white p-8 rounded-2xl overflow-hidden shadow-lg shadow-slate-200/50 border border-slate-200/50"
-    >
-      {/* Neon Spotlight Effect */}
-      <div
-        className="absolute inset-0 opacity-100 transition-opacity duration-300"
-        style={{
-          background: `radial-gradient(400px circle at ${mousePos.x}px ${mousePos.y}px, rgba(var(--neon-cyan-rgb), 0.15), transparent 80%)`,
-        }}
-      />
-
-      <div className="relative z-10">
-        <Quote className="absolute -top-2 -left-2 w-10 h-10 text-slate-200" />
-        <p className="text-slate-600 mb-6 leading-relaxed">
-          "{testimonial.content}"
-        </p>
-        <div className="flex items-center space-x-4">
-          <img
-            src={testimonial.avatar}
-            alt={testimonial.name}
-            className="w-12 h-12 rounded-full border-2 border-neon-cyan"
-          />
-          <div>
-            <div className="font-semibold text-slate-800">
-              {testimonial.name}
-            </div>
-            <div className="text-sm text-slate-500">{testimonial.role}</div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
+// Helper to handle wrapping indices
+const wrap = (index: number, length: number) => {
+  return ((index % length) + length) % length;
 };
 
 export const Testimonials = () => {
-  const testimonials = [
-    {
-      name: "Thabo Ndlovu",
-      role: "Software Engineer, Vodacom",
-      content:
-        "JobSpark's AI CV builder is a game-changer. It helped me highlight my skills in a way I never could have on my own. I landed my dream job in just three weeks.",
-      avatar: "https://randomuser.me/api/portraits/men/32.jpg",
-    },
-    {
-      name: "Aisha Khan",
-      role: "Marketing Manager, Takealot",
-      content:
-        "The interview prep tool was incredible. I went into my interviews feeling so much more confident and prepared. It made all the difference.",
-      avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-    },
-    {
-      name: "Michael Botha",
-      role: "Data Analyst, Standard Bank",
-      content:
-        "A fantastic platform for the South African market. The direct connections to employers are invaluable. I received three offers!",
-      avatar: "https://randomuser.me/api/portraits/men/46.jpg",
-    },
-  ];
+    const [[activeIndex, direction], setActiveIndex] = useState([0, 0]);
+    const [isHovered, setIsHovered] = useState(false);
 
-  return (
-    <section className="py-24 bg-slate-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    const changeTestimonial = (newDirection: number) => {
+        setActiveIndex([wrap(activeIndex + newDirection, testimonials.length), newDirection]);
+    };
+    
+    useEffect(() => {
+        if(isHovered) return;
+        const interval = setInterval(() => changeTestimonial(1), 6000);
+        return () => clearInterval(interval);
+    }, [isHovered, activeIndex]);
+
+    const activeTestimonial = testimonials[activeIndex];
+
+    const slideVariants = {
+        enter: (direction: number) => ({
+            x: direction > 0 ? 100 : -100,
+            opacity: 0,
+            scale: 0.9,
+        }),
+        center: {
+            x: 0,
+            opacity: 1,
+            scale: 1,
+            transition: { type: "spring", stiffness: 200, damping: 25 }
+        },
+        exit: (direction: number) => ({
+            x: direction < 0 ? 100 : -100,
+            opacity: 0,
+            scale: 0.9,
+            transition: { type: "spring", stiffness: 200, damping: 25 }
+        }),
+    };
+
+    return (
+    <section className="py-24 bg-slate-50 relative overflow-hidden">
+        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-50" />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="text-center mb-16"
+          viewport={{ once: true, amount: 0.5 }}
+          className="text-center mb-12"
         >
-          <h2 className="text-4xl lg:text-5xl font-bold tracking-tighter text-slate-900 mb-4">
+          <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tighter text-slate-900 mb-4">
             Loved by Professionals in SA
           </h2>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Real stories from people who've transformed their careers with
-            JobSpark.
+            Real stories from people who've transformed their careers with JobSpark.
           </p>
         </motion.div>
-
-        <div className="grid lg:grid-cols-3 gap-8">
-          {testimonials.map((testimonial) => (
-            <TestimonialCard key={testimonial.name} testimonial={testimonial} />
-          ))}
+        
+        <div 
+            className="relative h-80 flex items-center justify-center"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+        >
+            <AnimatePresence initial={false} custom={direction}>
+                <motion.div
+                    key={activeIndex}
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    className="absolute w-full max-w-2xl p-8 bg-white rounded-2xl shadow-xl border border-slate-200/80"
+                >
+                    <Quote className="absolute -top-4 -left-4 w-16 h-16 text-slate-100" />
+                    <p className="relative text-lg text-slate-700 mb-6 leading-relaxed">
+                        "{activeTestimonial.content}"
+                    </p>
+                    <div className="flex items-center space-x-4">
+                        <Image
+                            src={activeTestimonial.avatar}
+                            alt={activeTestimonial.name}
+                            width={56} height={56}
+                            className="w-14 h-14 rounded-full border-2 border-sky-200 object-cover"
+                        />
+                        <div>
+                            <div className="font-bold text-slate-800">{activeTestimonial.name}</div>
+                            <div className="text-sm text-slate-500">{activeTestimonial.role}</div>
+                        </div>
+                    </div>
+                </motion.div>
+            </AnimatePresence>
+            
+            <button onClick={() => changeTestimonial(-1)} className="absolute left-0 -translate-x-12 p-2 rounded-full bg-white/70 backdrop-blur-sm hover:bg-white transition-colors shadow-md">
+                <ArrowLeft className="w-6 h-6 text-slate-600"/>
+            </button>
+            <button onClick={() => changeTestimonial(1)} className="absolute right-0 translate-x-12 p-2 rounded-full bg-white/70 backdrop-blur-sm hover:bg-white transition-colors shadow-md">
+                <ArrowRight className="w-6 h-6 text-slate-600"/>
+            </button>
         </div>
       </div>
     </section>
