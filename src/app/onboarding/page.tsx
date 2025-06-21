@@ -25,12 +25,50 @@ import {
   getUserProfile
 } from "@/lib/database";
 
+interface PersonalInfo {
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string;
+  professionalSummary: string;
+}
+
+interface Experience {
+  title: string;
+  company: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  isCurrent: boolean;
+  description: string;
+}
+
+interface Education {
+  degree: string;
+  institution: string;
+  location: string;
+  graduationYear: string;
+  description: string;
+}
+
+interface Skill {
+  name: string;
+  level: string;
+}
+
+interface FormData {
+  personalInfo: PersonalInfo;
+  experiences: Experience[];
+  education: Education[];
+  skills: Skill[];
+}
+
 const OnboardingPage = () => {
   const { user } = useAuth();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     personalInfo: {
       fullName: "",
       email: "",
@@ -83,7 +121,7 @@ const OnboardingPage = () => {
     }
   }, [user]);
 
-  const handleInputChange = (section: string, field: string, value: any, index?: number) => {
+  const handleInputChange = (section: keyof FormData, field: string, value: any, index?: number) => {
     setFormData(prev => {
       if (section === "personalInfo") {
         return {
@@ -94,9 +132,10 @@ const OnboardingPage = () => {
           }
         };
       } else if (index !== undefined) {
+        const sectionData = prev[section] as any[];
         return {
           ...prev,
-          [section]: prev[section as keyof typeof prev].map((item: any, i: number) => 
+          [section]: sectionData.map((item: any, i: number) => 
             i === index ? { ...item, [field]: value } : item
           )
         };
@@ -105,26 +144,38 @@ const OnboardingPage = () => {
     });
   };
 
-  const addItem = (section: string) => {
+  const addItem = (section: keyof FormData) => {
     setFormData(prev => {
-      const newItem = section === "experiences" 
-        ? { title: "", company: "", location: "", startDate: "", endDate: "", isCurrent: false, description: "" }
-        : section === "education"
-        ? { degree: "", institution: "", location: "", graduationYear: "", description: "" }
-        : { name: "", level: "Intermediate" };
+      let newItem: any;
       
-      return {
-        ...prev,
-        [section]: [...prev[section as keyof typeof prev], newItem]
-      };
+      if (section === "experiences") {
+        newItem = { title: "", company: "", location: "", startDate: "", endDate: "", isCurrent: false, description: "" };
+      } else if (section === "education") {
+        newItem = { degree: "", institution: "", location: "", graduationYear: "", description: "" };
+      } else if (section === "skills") {
+        newItem = { name: "", level: "Intermediate" };
+      }
+      
+      if (newItem) {
+        const sectionData = prev[section] as any[];
+        return {
+          ...prev,
+          [section]: [...sectionData, newItem]
+        };
+      }
+      
+      return prev;
     });
   };
 
-  const removeItem = (section: string, index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      [section]: prev[section as keyof typeof prev].filter((_: any, i: number) => i !== index)
-    }));
+  const removeItem = (section: keyof FormData, index: number) => {
+    setFormData(prev => {
+      const sectionData = prev[section] as any[];
+      return {
+        ...prev,
+        [section]: sectionData.filter((_: any, i: number) => i !== index)
+      };
+    });
   };
 
   const validateStep = (step: number) => {
@@ -231,6 +282,7 @@ const OnboardingPage = () => {
       router.push('/dashboard');
     } catch (error) {
       console.error('Error completing onboarding:', error);
+      alert('There was an error completing your onboarding. Please try again.');
     } finally {
       setIsLoading(false);
     }
