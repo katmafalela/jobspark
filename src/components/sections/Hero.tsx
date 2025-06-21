@@ -11,9 +11,10 @@ import {
   ExternalLink,
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 
 // --- Custom Spotlight Button (Unchanged, it's solid) ---
-const SpotlightButton = ({ children }: { children: React.ReactNode }) => {
+const SpotlightButton = ({ children, href }: { children: React.ReactNode; href?: string }) => {
   const [mousePos, setMousePos] = useState({ x: -999, y: -999 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -22,7 +23,7 @@ const SpotlightButton = ({ children }: { children: React.ReactNode }) => {
     setMousePos({ x: clientX - left, y: clientY - top });
   };
 
-  return (
+  const ButtonContent = (
     <motion.button
       onMouseMove={handleMouseMove}
       onMouseLeave={() => setMousePos({ x: -999, y: -999 })}
@@ -42,6 +43,8 @@ const SpotlightButton = ({ children }: { children: React.ReactNode }) => {
       </span>
     </motion.button>
   );
+
+  return href ? <Link href={href}>{ButtonContent}</Link> : ButtonContent;
 };
 
 // --- NEW "Flip" Button Component ---
@@ -190,7 +193,7 @@ export const Hero = () => {
           </motion.p>
 
           <motion.div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-            <SpotlightButton>
+            <SpotlightButton href="/auth">
               Start Your Journey <ArrowRight className="ml-2 w-5 h-5" />
             </SpotlightButton>
             <FlipButton href="#how-it-works">How it Works</FlipButton>

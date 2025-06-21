@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Sparkles, BarChart3, Users, Info, ArrowRight } from "lucide-react";
 import ShimmerButton from "../ui/ShimmerButton";
 import Image from "next/image";
+import Link from "next/link";
 
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -69,12 +70,12 @@ export const Header = () => {
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20"
       >
         {/* Left Side: Logo */}
-        <a href="#" className="flex items-center space-x-2">
+        <Link href="/" className="flex items-center space-x-2">
           <Sparkles className="w-8 h-8 text-sky-500 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
           <span className="text-2xl font-bold text-slate-900 tracking-tight">
             JobSpark
           </span>
-        </a>
+        </Link>
 
         {/* Center: Navigation - Hidden on mobile, shown on md+ */}
         <div
@@ -111,18 +112,22 @@ export const Header = () => {
 
         {/* Right Side: Actions & Spinning Logo */}
         <div className="flex items-center space-x-4">
-          <motion.button
-            whileHover={{ scale: 1.05, color: "#000" }}
-            whileTap={{ scale: 0.95 }}
-            className="font-semibold px-4 py-2 text-slate-600 transition-colors hidden sm:block"
-          >
-            Login
-          </motion.button>
-          <ShimmerButton className="!px-5 !py-2.5">
-            <span className="flex items-center">
-              Get Started <ArrowRight className="ml-2 w-4 h-4" />
-            </span>
-          </ShimmerButton>
+          <Link href="/auth">
+            <motion.button
+              whileHover={{ scale: 1.05, color: "#000" }}
+              whileTap={{ scale: 0.95 }}
+              className="font-semibold px-4 py-2 text-slate-600 transition-colors hidden sm:block"
+            >
+              Login
+            </motion.button>
+          </Link>
+          <Link href="/auth">
+            <ShimmerButton className="!px-5 !py-2.5">
+              <span className="flex items-center">
+                Get Started <ArrowRight className="ml-2 w-4 h-4" />
+              </span>
+            </ShimmerButton>
+          </Link>
           <div className="animate-spin-slow ml-2">
             <Image
               src="/bolt.svg"
