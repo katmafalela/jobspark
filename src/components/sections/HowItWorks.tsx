@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, Variants } from "framer-motion";
 import { UserPlus, PencilRuler, Send } from "lucide-react";
 import { useRef } from "react";
 
@@ -25,7 +25,7 @@ const steps = [
 const TimelineStep = ({ step, index }: { step: any, index: number }) => {
     const isReversed = index % 2 !== 0;
 
-    const cardVariants = {
+    const cardVariants: Variants = {
         offscreen: { opacity: 0, x: isReversed ? 50 : -50 },
         onscreen: {
             opacity: 1,
@@ -34,7 +34,7 @@ const TimelineStep = ({ step, index }: { step: any, index: number }) => {
         }
     };
     
-    const markerVariants = {
+    const markerVariants: Variants = {
         offscreen: { scale: 0 },
         onscreen: {
             scale: 1,
@@ -42,7 +42,7 @@ const TimelineStep = ({ step, index }: { step: any, index: number }) => {
         }
     };
     
-     const markerGlowVariants = {
+     const markerGlowVariants: Variants = {
         offscreen: { opacity: 0 },
         onscreen: {
             opacity: [0, 0.7, 0],

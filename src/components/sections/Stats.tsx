@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 import { Zap, Building2, TrendingUp, Star } from "lucide-react";
-import AnimatedCounter from "../ui/AnimatedCounter"; // Assuming this component exists
+import AnimatedCounter from "../ui/AnimatedCounter";
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -12,7 +12,7 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { y: 30, opacity: 0, scale: 0.95 },
   visible: {
     y: 0,

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Quote, ArrowLeft, ArrowRight } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
@@ -32,7 +32,7 @@ export const Testimonials = () => {
 
     const activeTestimonial = testimonials[activeIndex];
 
-    const slideVariants = {
+    const slideVariants: Variants = {
         enter: (direction: number) => ({ x: direction > 0 ? 100 : -100, opacity: 0, scale: 0.95 }),
         center: { x: 0, opacity: 1, scale: 1, transition: { type: "spring", stiffness: 200, damping: 25 } },
         exit: (direction: number) => ({ x: direction < 0 ? 100 : -100, opacity: 0, scale: 0.95, transition: { type: "spring", stiffness: 200, damping: 25 } }),

@@ -3,13 +3,17 @@
 import { useInView, useMotionValue, useSpring } from "framer-motion";
 import { useEffect, useRef } from "react";
 
+interface AnimatedCounterProps {
+  value: number;
+  suffix?: string;
+  precision?: number;
+}
+
 export default function AnimatedCounter({
   value,
   suffix = "",
-}: {
-  value: number;
-  suffix?: string;
-}) {
+  precision = 0,
+}: AnimatedCounterProps) {
   const ref = useRef<HTMLSpanElement>(null);
   const motionValue = useMotionValue(0);
   const springValue = useSpring(motionValue, {
@@ -28,12 +32,13 @@ export default function AnimatedCounter({
     () =>
       springValue.on("change", (latest) => {
         if (ref.current) {
-          ref.current.textContent = `${Intl.NumberFormat("en-US").format(
-            latest.toFixed(0) as any
-          )}${suffix}`;
+          const formattedValue = precision > 0 
+            ? latest.toFixed(precision)
+            : Intl.NumberFormat("en-US").format(Math.round(latest));
+          ref.current.textContent = `${formattedValue}${suffix}`;
         }
       }),
-    [springValue, suffix]
+    [springValue, suffix, precision]
   );
 
   return <span ref={ref} />;
