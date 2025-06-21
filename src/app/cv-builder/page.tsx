@@ -195,6 +195,92 @@ const CVBuilderPage = () => {
     URL.revokeObjectURL(url);
   };
 
+  const addExperience = () => {
+    setCvData(prev => ({
+      ...prev,
+      experiences: [...prev.experiences, {
+        title: "",
+        company: "",
+        location: "",
+        startDate: "",
+        endDate: "",
+        isCurrent: false,
+        description: ""
+      }]
+    }));
+  };
+
+  const removeExperience = (index: number) => {
+    setCvData(prev => ({
+      ...prev,
+      experiences: prev.experiences.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateExperience = (index: number, field: string, value: any) => {
+    setCvData(prev => ({
+      ...prev,
+      experiences: prev.experiences.map((exp, i) => 
+        i === index ? { ...exp, [field]: value } : exp
+      )
+    }));
+  };
+
+  const addEducation = () => {
+    setCvData(prev => ({
+      ...prev,
+      education: [...prev.education, {
+        degree: "",
+        institution: "",
+        location: "",
+        graduationYear: "",
+        description: ""
+      }]
+    }));
+  };
+
+  const removeEducation = (index: number) => {
+    setCvData(prev => ({
+      ...prev,
+      education: prev.education.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateEducation = (index: number, field: string, value: any) => {
+    setCvData(prev => ({
+      ...prev,
+      education: prev.education.map((edu, i) => 
+        i === index ? { ...edu, [field]: value } : edu
+      )
+    }));
+  };
+
+  const addSkill = () => {
+    setCvData(prev => ({
+      ...prev,
+      skills: [...prev.skills, {
+        name: "",
+        level: "Beginner"
+      }]
+    }));
+  };
+
+  const removeSkill = (index: number) => {
+    setCvData(prev => ({
+      ...prev,
+      skills: prev.skills.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updateSkill = (index: number, field: string, value: any) => {
+    setCvData(prev => ({
+      ...prev,
+      skills: prev.skills.map((skill, i) => 
+        i === index ? { ...skill, [field]: value } : skill
+      )
+    }));
+  };
+
   const renderPersonalInfo = () => (
     <div className="space-y-6">
       <div className="grid md:grid-cols-2 gap-6">
@@ -279,6 +365,284 @@ const CVBuilderPage = () => {
           placeholder="Write a brief summary of your professional background and career objectives..."
         />
       </div>
+    </div>
+  );
+
+  const renderExperience = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <p className="text-slate-600">Add your work experience and professional background.</p>
+        <button
+          onClick={addExperience}
+          className="flex items-center space-x-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Experience</span>
+        </button>
+      </div>
+
+      {cvData.experiences.length === 0 ? (
+        <div className="text-center py-12 text-slate-500">
+          <Briefcase className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+          <p>No work experience added yet.</p>
+          <p className="text-sm">Click "Add Experience" to get started.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {cvData.experiences.map((experience, index) => (
+            <div key={index} className="border border-slate-200 rounded-lg p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="font-semibold text-slate-900">Experience {index + 1}</h3>
+                <button
+                  onClick={() => removeExperience(index)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Job Title</label>
+                  <input
+                    type="text"
+                    value={experience.title}
+                    onChange={(e) => updateExperience(index, 'title', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="e.g. Software Developer"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Company</label>
+                  <input
+                    type="text"
+                    value={experience.company}
+                    onChange={(e) => updateExperience(index, 'company', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="e.g. Tech Company Ltd"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+                  <input
+                    type="text"
+                    value={experience.location}
+                    onChange={(e) => updateExperience(index, 'location', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="e.g. Cape Town, South Africa"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Start Date</label>
+                  <input
+                    type="month"
+                    value={experience.startDate}
+                    onChange={(e) => updateExperience(index, 'startDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <input
+                    type="checkbox"
+                    id={`current-${index}`}
+                    checked={experience.isCurrent}
+                    onChange={(e) => updateExperience(index, 'isCurrent', e.target.checked)}
+                    className="rounded border-slate-300 text-sky-500 focus:ring-sky-500"
+                  />
+                  <label htmlFor={`current-${index}`} className="text-sm font-medium text-slate-700">
+                    I currently work here
+                  </label>
+                </div>
+                {!experience.isCurrent && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">End Date</label>
+                    <input
+                      type="month"
+                      value={experience.endDate}
+                      onChange={(e) => updateExperience(index, 'endDate', e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                <textarea
+                  rows={3}
+                  value={experience.description}
+                  onChange={(e) => updateExperience(index, 'description', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  placeholder="Describe your responsibilities and achievements..."
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderEducation = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <p className="text-slate-600">Add your educational background and qualifications.</p>
+        <button
+          onClick={addEducation}
+          className="flex items-center space-x-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Education</span>
+        </button>
+      </div>
+
+      {cvData.education.length === 0 ? (
+        <div className="text-center py-12 text-slate-500">
+          <GraduationCap className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+          <p>No education added yet.</p>
+          <p className="text-sm">Click "Add Education" to get started.</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {cvData.education.map((education, index) => (
+            <div key={index} className="border border-slate-200 rounded-lg p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h3 className="font-semibold text-slate-900">Education {index + 1}</h3>
+                <button
+                  onClick={() => removeEducation(index)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Degree/Qualification</label>
+                  <input
+                    type="text"
+                    value={education.degree}
+                    onChange={(e) => updateEducation(index, 'degree', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="e.g. Bachelor of Science in Computer Science"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Institution</label>
+                  <input
+                    type="text"
+                    value={education.institution}
+                    onChange={(e) => updateEducation(index, 'institution', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="e.g. University of Cape Town"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+                  <input
+                    type="text"
+                    value={education.location}
+                    onChange={(e) => updateEducation(index, 'location', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="e.g. Cape Town, South Africa"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Graduation Year</label>
+                  <input
+                    type="number"
+                    value={education.graduationYear}
+                    onChange={(e) => updateEducation(index, 'graduationYear', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="e.g. 2023"
+                    min="1950"
+                    max="2030"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Description (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={education.description}
+                  onChange={(e) => updateEducation(index, 'description', e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  placeholder="Relevant coursework, achievements, or additional details..."
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSkills = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <p className="text-slate-600">Add your technical and professional skills.</p>
+        <button
+          onClick={addSkill}
+          className="flex items-center space-x-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add Skill</span>
+        </button>
+      </div>
+
+      {cvData.skills.length === 0 ? (
+        <div className="text-center py-12 text-slate-500">
+          <Award className="w-12 h-12 mx-auto mb-4 text-slate-300" />
+          <p>No skills added yet.</p>
+          <p className="text-sm">Click "Add Skill" to get started.</p>
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-2 gap-4">
+          {cvData.skills.map((skill, index) => (
+            <div key={index} className="border border-slate-200 rounded-lg p-4">
+              <div className="flex justify-between items-start mb-3">
+                <h3 className="font-semibold text-slate-900">Skill {index + 1}</h3>
+                <button
+                  onClick={() => removeSkill(index)}
+                  className="p-1 text-red-500 hover:bg-red-50 rounded transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Skill Name</label>
+                  <input
+                    type="text"
+                    value={skill.name}
+                    onChange={(e) => updateSkill(index, 'name', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    placeholder="e.g. JavaScript, Project Management"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Proficiency Level</label>
+                  <select
+                    value={skill.level}
+                    onChange={(e) => updateSkill(index, 'level', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  >
+                    <option value="Beginner">Beginner</option>
+                    <option value="Intermediate">Intermediate</option>
+                    <option value="Advanced">Advanced</option>
+                    <option value="Expert">Expert</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -457,32 +821,10 @@ const CVBuilderPage = () => {
                   </div>
                   
                   {activeSection === "personal" && renderPersonalInfo()}
+                  {activeSection === "experience" && renderExperience()}
+                  {activeSection === "education" && renderEducation()}
+                  {activeSection === "skills" && renderSkills()}
                   {activeSection === "generate" && renderGenerate()}
-                  
-                  {/* Other sections would be rendered here with similar patterns */}
-                  {activeSection === "experience" && (
-                    <div className="text-center py-12 text-slate-500">
-                      <Briefcase className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                      <p>Experience data loaded from your profile.</p>
-                      <p className="text-sm">Go to Personal Info or Generate CV to continue.</p>
-                    </div>
-                  )}
-                  
-                  {activeSection === "education" && (
-                    <div className="text-center py-12 text-slate-500">
-                      <GraduationCap className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                      <p>Education data loaded from your profile.</p>
-                      <p className="text-sm">Go to Personal Info or Generate CV to continue.</p>
-                    </div>
-                  )}
-                  
-                  {activeSection === "skills" && (
-                    <div className="text-center py-12 text-slate-500">
-                      <Award className="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                      <p>Skills data loaded from your profile.</p>
-                      <p className="text-sm">Go to Personal Info or Generate CV to continue.</p>
-                    </div>
-                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
