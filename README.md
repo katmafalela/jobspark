@@ -1,51 +1,20 @@
-# JobSpark - Your AI Career Co-Pilot
-
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
-### Environment Setup
+First, run the development server:
 
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env.local
-   ```
-
-2. Fill in your actual environment variables in `.env.local`
-
-3. Run the development server:
-   ```bash
-   npm run dev
-   # or
-   yarn dev
-   # or
-   pnpm dev
-   # or
-   bun dev
-   ```
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-### Environment Variables
-
-This project uses several environment variables for configuration:
-
-#### Public Variables (accessible in browser)
-- `NEXT_PUBLIC_APP_URL` - Your app's URL
-- `NEXT_PUBLIC_API_URL` - Your API base URL
-
-#### Private Variables (server-side only)
-- `DATABASE_URL` - Database connection string
-- `NEXTAUTH_SECRET` - NextAuth.js secret key
-- `NEXTAUTH_URL` - NextAuth.js URL
-- `GOOGLE_CLIENT_ID` - Google OAuth client ID
-- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
-- Email service configuration
-- API keys for third-party services
-
-**Important:** Never commit `.env.local` or any file containing actual secrets to version control.
-
-## Development
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
