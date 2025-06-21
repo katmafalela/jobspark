@@ -1,73 +1,61 @@
 "use client";
 
-import { motion, useMotionValue, useTransform } from "framer-motion";
-import { FileText, MessageSquare, Briefcase, Target, Zap } from "lucide-react";
-import React, { useRef } from "react";
+import { motion } from "framer-motion";
+import { FileText, MessageSquare, Briefcase, Target } from "lucide-react";
+import React from "react";
 
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.15, delayChildren: 0.2 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.2 },
   },
 };
 
 const itemVariants = {
-  hidden: { y: 30, opacity: 0, scale: 0.9 },
+  hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
-    scale: 1,
-    transition: { type: "spring", stiffness: 100, damping: 13 },
+    transition: { type: "spring", stiffness: 100, damping: 12 },
   },
 };
 
-// --- Custom Interactive Feature Card ---
+// --- NEW Interactive Feature Card with Animated Border ---
 const FeatureCard = ({ feature }: { feature: any }) => {
-    const cardRef = useRef<HTMLDivElement>(null);
-    const mouseX = useMotionValue(0.5);
-    const mouseY = useMotionValue(0.5);
-
-    function handleMouseMove({ currentTarget, clientX, clientY }: React.MouseEvent) {
-        const { left, top, width, height } = currentTarget.getBoundingClientRect();
-        mouseX.set((clientX - left) / width);
-        mouseY.set((clientY - top) / height);
-    }
-    
-    // Spring-based transformations for a smooth 3D tilt
-    const rotateX = useTransform(mouseY, [0, 1], [10, -10]);
-    const rotateY = useTransform(mouseX, [0, 1], [-10, 10]);
-    
-    // Spotlight gradient position
-    const spotlightX = useTransform(mouseX, [0, 1], ["0%", "100%"]);
-    const spotlightY = useTransform(mouseY, [0, 1], ["0%", "100%"]);
-
     return (
         <motion.div
-            ref={cardRef}
             variants={itemVariants}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => {
-                mouseX.set(0.5);
-                mouseY.set(0.5);
-            }}
-            style={{ rotateX, rotateY, perspective: 800 }}
-            className="relative w-full aspect-square bg-white/40 backdrop-blur-lg border border-white/50 rounded-3xl p-8 text-center flex flex-col items-center justify-center overflow-hidden shadow-2xl shadow-slate-300/20"
+            className="relative w-full aspect-[4/5] p-px rounded-3xl overflow-hidden
+                       bg-slate-100 border border-slate-200
+                       hover:bg-white hover:border-transparent transition-colors duration-500"
         >
-             {/* The moving spotlight effect */}
-            <motion.div
-                className="absolute inset-0 z-0 opacity-50"
-                style={{
-                    background: `radial-gradient(circle at ${spotlightX} ${spotlightY}, #bae6fd, transparent 40%)`,
-                }}
-            />
-            
-            {/* The content */}
-            <div className="relative z-10 flex flex-col items-center">
+             {/* This inner div is for the main content styling */}
+             <div className="relative z-10 w-full h-full bg-white/80 backdrop-blur-md rounded-[23px] p-8 text-center flex flex-col items-center justify-center">
+                
+                {/* The "Comet" that orbits on hover */}
+                <motion.div 
+                    className="absolute -z-10 w-40 h-40 opacity-0 group-hover:opacity-100"
+                    style={{
+                        background: 'radial-gradient(circle, #0ea5e9, transparent 35%)',
+                        top: '-50px',
+                        left: '-50px',
+                    }}
+                    whileHover={{
+                        opacity: [0.5, 1, 0.5],
+                        x: [0, 230, 230, 0, 0],
+                        y: [0, 0, 260, 260, 0],
+                        transition: {
+                            duration: 4,
+                            repeat: Infinity,
+                            ease: "linear"
+                        }
+                    }}
+                />
+
                 <motion.div
-                    className="p-4 bg-white/80 rounded-full mb-6 shadow-lg"
-                    animate={{ scale: [1, 1.08, 1] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    className="p-4 bg-white rounded-full mb-6 shadow-lg"
+                    whileHover={{ scale: 1.1 }}
                 >
                     <feature.icon className="w-10 h-10 text-sky-500" />
                 </motion.div>
@@ -117,7 +105,7 @@ export const Features = () => {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.1 }}
-                className="grid sm:grid-cols-2 md:grid-cols-4 gap-8"
+                className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 group" // Add group here
             >
             {features.map((feature) => (
                 <FeatureCard key={feature.title} feature={feature} />
