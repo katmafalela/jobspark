@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { getUserProfile } from "@/lib/database";
 import { 
   Sparkles, 
   LogOut, 
@@ -23,11 +24,34 @@ import Link from "next/link";
 const DashboardPage = () => {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
+  const [profileLoading, setProfileLoading] = useState(true);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/auth');
-    }
+    const checkOnboarding = async () => {
+      if (!loading && !user) {
+        router.push('/auth');
+        return;
+      }
+
+      if (user) {
+        try {
+          const profile = await getUserProfile(user.id);
+          if (!profile || !profile.onboarding_completed) {
+            router.push('/onboarding');
+            return;
+          }
+        } catch (error) {
+          console.error('Error checking profile:', error);
+          // If profile doesn't exist, redirect to onboarding
+          router.push('/onboarding');
+          return;
+        } finally {
+          setProfileLoading(false);
+        }
+      }
+    };
+
+    checkOnboarding();
   }, [user, loading, router]);
 
   const handleSignOut = async () => {
@@ -35,7 +59,7 @@ const DashboardPage = () => {
     router.push('/');
   };
 
-  if (loading) {
+  if (loading || profileLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex items-center space-x-2">
@@ -214,32 +238,21 @@ const DashboardPage = () => {
                 <FileText className="w-5 h-5 text-green-600" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-slate-900">CV Updated</p>
-                <p className="text-sm text-slate-600">Your CV was successfully updated with new skills</p>
+                <p className="font-medium text-slate-900">Profile Completed</p>
+                <p className="text-sm text-slate-600">You completed your onboarding process</p>
               </div>
-              <span className="text-sm text-slate-500">2 hours ago</span>
+              <span className="text-sm text-slate-500">Just now</span>
             </div>
             
             <div className="flex items-center space-x-4 p-4 bg-slate-50 rounded-lg">
               <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <MessageSquare className="w-5 h-5 text-blue-600" />
+                <User className="w-5 h-5 text-blue-600" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-slate-900">Interview Practice Completed</p>
-                <p className="text-sm text-slate-600">You completed a mock interview session</p>
+                <p className="font-medium text-slate-900">Account Created</p>
+                <p className="text-sm text-slate-600">Welcome to JobSpark!</p>
               </div>
-              <span className="text-sm text-slate-500">1 day ago</span>
-            </div>
-            
-            <div className="flex items-center space-x-4 p-4 bg-slate-50 rounded-lg">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-slate-900">New Job Match</p>
-                <p className="text-sm text-slate-600">3 new job opportunities match your profile</p>
-              </div>
-              <span className="text-sm text-slate-500">2 days ago</span>
+              <span className="text-sm text-slate-500">Today</span>
             </div>
           </div>
         </motion.div>
