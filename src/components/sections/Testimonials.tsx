@@ -24,7 +24,7 @@ const TestimonialCard = ({ testimonial }: { testimonial: any }) => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5 }}
-      className="relative bg-white dark:bg-slate-900 p-8 rounded-2xl overflow-hidden shadow-lg shadow-slate-200/50 dark:shadow-black/50 border border-slate-200/50 dark:border-white/10"
+      className="relative bg-white p-8 rounded-2xl overflow-hidden shadow-lg shadow-slate-200/50 border border-slate-200/50"
     >
       {/* Neon Spotlight Effect */}
       <div
@@ -35,8 +35,8 @@ const TestimonialCard = ({ testimonial }: { testimonial: any }) => {
       />
 
       <div className="relative z-10">
-        <Quote className="absolute -top-2 -left-2 w-10 h-10 text-slate-200 dark:text-slate-700" />
-        <p className="text-slate-600 dark:text-gray-300 mb-6 leading-relaxed">
+        <Quote className="absolute -top-2 -left-2 w-10 h-10 text-slate-200" />
+        <p className="text-slate-600 mb-6 leading-relaxed">
           "{testimonial.content}"
         </p>
         <div className="flex items-center space-x-4">
@@ -46,12 +46,10 @@ const TestimonialCard = ({ testimonial }: { testimonial: any }) => {
             className="w-12 h-12 rounded-full border-2 border-neon-cyan"
           />
           <div>
-            <div className="font-semibold text-slate-800 dark:text-white">
+            <div className="font-semibold text-slate-800">
               {testimonial.name}
             </div>
-            <div className="text-sm text-slate-500 dark:text-gray-400">
-              {testimonial.role}
-            </div>
+            <div className="text-sm text-slate-500">{testimonial.role}</div>
           </div>
         </div>
       </div>
@@ -85,7 +83,7 @@ export const Testimonials = () => {
   ];
 
   return (
-    <section className="py-24 bg-slate-50 dark:bg-slate-900/50">
+    <section className="py-24 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -93,10 +91,10 @@ export const Testimonials = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl lg:text-5xl font-bold tracking-tighter text-slate-900 dark:text-white mb-4">
+          <h2 className="text-4xl lg:text-5xl font-bold tracking-tighter text-slate-900 mb-4">
             Loved by Professionals in SA
           </h2>
-          <p className="text-lg text-slate-600 dark:text-gray-400 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             Real stories from people who've transformed their careers with
             JobSpark.
           </p>

@@ -44,10 +44,10 @@ export const Stats = () => {
               <motion.div whileHover={{ scale: 1.1, y: -5 }}>
                 <stat.icon className="w-10 h-10 mb-3 text-neon-cyan drop-shadow-[0_0_8px_rgba(var(--neon-cyan-rgb),0.6)]" />
               </motion.div>
-              <div className="text-4xl lg:text-5xl font-bold tracking-tighter text-slate-900 dark:text-white">
+              <div className="text-4xl lg:text-5xl font-bold tracking-tighter text-slate-900">
                 <AnimatedCounter value={stat.value} suffix={stat.suffix} />
               </div>
-              <div className="text-slate-500 dark:text-gray-400 mt-1 font-medium">
+              <div className="text-slate-500 mt-1 font-medium">
                 {stat.label}
               </div>
             </motion.div>

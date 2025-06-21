@@ -32,7 +32,7 @@ export const Features = () => {
   ];
 
   return (
-    <section className="py-24 bg-slate-50 dark:bg-slate-900/50">
+    <section className="py-24 bg-slate-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -41,10 +41,10 @@ export const Features = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl lg:text-5xl font-bold tracking-tighter text-slate-900 dark:text-white mb-4">
+          <h2 className="text-4xl lg:text-5xl font-bold tracking-tighter text-slate-900 mb-4">
             A Smarter Way to Get Hired
           </h2>
-          <p className="text-lg text-slate-600 dark:text-gray-400 max-w-3xl mx-auto">
+          <p className="text-lg text-slate-600 max-w-3xl mx-auto">
             Our intelligent suite of tools gives you a competitive edge at every
             stage of your job search.
           </p>
@@ -58,24 +58,24 @@ export const Features = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="group relative bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-lg shadow-slate-200/50 dark:shadow-black/50 overflow-hidden"
+              className="group relative bg-white p-8 rounded-2xl shadow-lg shadow-slate-200/50 overflow-hidden"
             >
               {/* Neon border glow on hover */}
               <div className="absolute inset-0 transition-all duration-300 opacity-0 group-hover:opacity-100">
                 <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan to-neon-magenta rounded-2xl blur-md"></div>
-                <div className="absolute inset-0.5 bg-white dark:bg-slate-900 rounded-2xl"></div>
+                <div className="absolute inset-0.5 bg-white rounded-2xl"></div>
               </div>
 
               <div className="relative z-10">
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg">
+                  <div className="bg-slate-100 p-3 rounded-lg">
                     <feature.icon className="w-6 h-6 text-neon-cyan drop-shadow-[0_0_3px_rgba(var(--neon-cyan-rgb),0.5)]" />
                   </div>
-                  <h3 className="text-xl font-semibold text-slate-800 dark:text-white">
+                  <h3 className="text-xl font-semibold text-slate-800">
                     {feature.title}
                   </h3>
                 </div>
-                <p className="text-slate-600 dark:text-gray-400 leading-relaxed pl-16">
+                <p className="text-slate-600 leading-relaxed pl-16">
                   {feature.description}
                 </p>
               </div>

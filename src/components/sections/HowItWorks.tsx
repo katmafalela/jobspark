@@ -43,10 +43,10 @@ export const HowItWorks = () => {
           transition={{ duration: 0.5 }}
           className="text-center mb-20"
         >
-          <h2 className="text-4xl lg:text-5xl font-bold tracking-tighter text-slate-900 dark:text-white mb-4">
+          <h2 className="text-4xl lg:text-5xl font-bold tracking-tighter text-slate-900 mb-4">
             Your Path to Success in 3 Steps
           </h2>
-          <p className="text-lg text-slate-600 dark:text-gray-400 max-w-2xl mx-auto">
+          <p className="text-lg text-slate-600 max-w-2xl mx-auto">
             Follow our proven process to go from job seeker to valued employee.
           </p>
         </motion.div>
@@ -66,17 +66,17 @@ export const HowItWorks = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.5, delay: index * 0.15 }}
-                className="bg-white dark:bg-slate-900 p-8 rounded-xl text-center lg:text-left shadow-lg shadow-slate-200/50 dark:shadow-black/50 border border-slate-200/50 dark:border-white/10"
+                className="bg-white p-8 rounded-xl text-center lg:text-left shadow-lg shadow-slate-200/50 border border-slate-200/50"
               >
                 <div className="mb-4">
-                  <span className="text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-slate-300 to-slate-400 dark:from-slate-600 dark:to-slate-800">
+                  <span className="text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-b from-slate-300 to-slate-400">
                     {step.number}
                   </span>
                 </div>
-                <h3 className="text-xl font-semibold text-slate-800 dark:text-white mb-3">
+                <h3 className="text-xl font-semibold text-slate-800 mb-3">
                   {step.title}
                 </h3>
-                <p className="text-slate-600 dark:text-gray-400 leading-relaxed">
+                <p className="text-slate-600 leading-relaxed">
                   {step.description}
                 </p>
               </motion.div>

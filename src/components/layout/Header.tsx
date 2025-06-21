@@ -2,89 +2,134 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useTheme } from "next-themes";
-import { Sparkles, Sun, Moon } from "lucide-react";
+import { Sparkles, LayoutGrid, Tag, Info, ArrowRight } from "lucide-react";
 import ShimmerButton from "../ui/ShimmerButton";
-
-const ThemeSwitcher = () => {
-  const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return <div className="w-8 h-8" />;
-  }
-
-  return (
-    <motion.button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-      whileHover={{ scale: 1.1, rotate: 15 }}
-      whileTap={{ scale: 0.9, rotate: -15 }}
-      className="p-2 rounded-full text-slate-600 dark:text-gray-300 hover:text-neon-cyan dark:hover:text-neon-cyan transition-colors"
-      aria-label="Toggle theme"
-    >
-      {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
-    </motion.button>
-  );
-};
+import Image from "next/image"; // Import the Next.js Image component for optimization
 
 export const Header = () => {
+  const [scrolled, setScrolled] = useState(false);
+  const [hoveredLink, setHoveredLink] = useState("");
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const navLinks = [
+    { name: "Features", href: "#", icon: LayoutGrid },
+    { name: "Pricing", href: "#", icon: Tag },
+    { name: "Company", href: "#", icon: Info },
+  ];
+
+  const headerVariants = {
+    initial: { y: -100, opacity: 0 },
+    animate: {
+      y: 0,
+      opacity: 1,
+      transition: {
+        duration: 0.8,
+        ease: "circOut", // Corrected, valid easing function
+      },
+    },
+  };
+
+  const contentVariants = {
+    initial: { y: -20, opacity: 0 },
+    animate: {
+      y: 0,
+      opacity: 1,
+      transition: { duration: 0.5, ease: "circOut", staggerChildren: 0.1 },
+    },
+  };
+
   return (
     <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="fixed top-0 left-0 right-0 w-full bg-white/80 dark:bg-slate-950/80 backdrop-blur-lg z-50 border-b border-slate-200/60 dark:border-white/10"
+      initial="initial"
+      animate="animate"
+      variants={headerVariants as any}
+      className={`fixed top-0 left-0 right-0 w-full z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-white/95 backdrop-blur-xl shadow-md border-b border-slate-200/60"
+          : "bg-transparent"
+      }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          <motion.a
-            href="#"
-            className="flex items-center space-x-2"
-            whileHover={{ scale: 1.05 }}
+      <motion.div
+        variants={contentVariants as any}
+        className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-20"
+      >
+        {/* Left Side: Logo */}
+        <a href="#" className="flex items-center space-x-2">
+          <Sparkles className="w-8 h-8 text-sky-500 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
+          <span className="text-2xl font-bold text-slate-900 tracking-tight">
+            JobSpark
+          </span>
+        </a>
+
+        {/* Center: Navigation */}
+        <div
+          className="hidden md:flex items-center space-x-1 bg-white/60 border border-slate-200/80 rounded-full px-2 shadow-sm"
+          onMouseLeave={() => setHoveredLink("")}
+        >
+          {navLinks.map((link) => (
+            <a
+              key={link.name}
+              href={link.href}
+              className="relative font-medium text-slate-600 hover:text-slate-900 transition-colors px-4 py-2 rounded-full"
+              onMouseEnter={() => setHoveredLink(link.name)}
+            >
+              <span className="relative z-10 flex items-center">
+                <link.icon className="w-4 h-4 mr-2 text-slate-400 group-hover:text-sky-500 transition-colors" />
+                {link.name}
+              </span>
+              {hoveredLink === link.name && (
+                <motion.div
+                  className="absolute inset-0 bg-slate-100 rounded-full"
+                  layoutId="hover-bg"
+                  transition={{
+                    duration: 0.25,
+                    type: "spring",
+                    stiffness: 120,
+                    damping: 14,
+                  }}
+                />
+              )}
+            </a>
+          ))}
+        </div>
+
+        {/* Right Side: Actions & Spinning Logo */}
+        <div className="flex items-center space-x-4">
+          <motion.button
+            whileHover={{ scale: 1.05, color: "#000" }}
+            whileTap={{ scale: 0.95 }}
+            className="font-semibold px-4 py-2 text-slate-600 transition-colors hidden sm:block"
           >
-            <Sparkles className="w-7 h-7 text-neon-cyan drop-shadow-[0_0_5px_rgba(var(--neon-cyan-rgb),0.7)]" />
-            <span className="text-2xl font-bold text-slate-900 dark:text-white">
-              JobSpark
+            Login
+          </motion.button>
+          <ShimmerButton className="!px-5 !py-2.5">
+            <span className="flex items-center">
+              Get Started <ArrowRight className="ml-2 w-4 h-4" />
             </span>
-          </motion.a>
-
-          <div className="hidden md:flex items-center space-x-8">
-            <a
-              href="#"
-              className="font-medium text-slate-600 dark:text-gray-300 hover:text-neon-cyan dark:hover:text-neon-cyan transition-colors"
-            >
-              Features
-            </a>
-            <a
-              href="#"
-              className="font-medium text-slate-600 dark:text-gray-300 hover:text-neon-cyan dark:hover:text-neon-cyan transition-colors"
-            >
-              Pricing
-            </a>
-            <a
-              href="#"
-              className="font-medium text-slate-600 dark:text-gray-300 hover:text-neon-cyan dark:hover:text-neon-cyan transition-colors"
-            >
-              Company
-            </a>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <ThemeSwitcher />
-            <motion.button
-              whileHover={{ y: -2 }}
-              className="font-semibold px-4 py-2 text-slate-600 dark:text-gray-300 hover:text-neon-cyan dark:hover:text-neon-cyan transition-colors hidden sm:block"
-            >
-              Login
-            </motion.button>
-            <ShimmerButton>Get Started</ShimmerButton>
+          </ShimmerButton>
+          <div className="animate-spin-slow ml-2">
+            <Image
+              src="/bolt.svg"
+              alt="Decorative Bolt"
+              width={60}
+              height={60}
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.open("https://bolt.new", "_blank");
+                }
+              }}
+              className="opacity-80"
+            />
           </div>
         </div>
-      </div>
+      </motion.div>
     </motion.nav>
   );
 };

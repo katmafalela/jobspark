@@ -10,8 +10,8 @@ import { Footer } from "@/components/layout/Footer";
 
 export default function HomePage() {
   return (
-    // The main container provides the base background color that changes with the theme
-    <main className="bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 antialiased">
+    // The main container provides the base background color
+    <main className="bg-white text-slate-800 antialiased">
       <Header />
       <Hero />
       <Stats />
