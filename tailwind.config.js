@@ -1,32 +1,40 @@
-// tailwind.config.js
-
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: "class", // This is the crucial line for next-themes
+  darkMode: "class",
   content: [
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
       colors: {
-        // Define our neon colors for reusability
         "neon-cyan": "#00FFFF",
         "neon-magenta": "#FF00FF",
-        // Define RGB versions for use in box-shadows or drop-shadows
         "neon-cyan-rgb": "0, 255, 255",
         "neon-magenta-rgb": "255, 0, 255",
       },
       animation: {
-        // Aurora-like animation for background gradients
         "gradient-fade": "gradient-fade 15s ease infinite",
+        "float": "float 6s ease-in-out infinite",
+        "glow": "glow 2s ease-in-out infinite alternate",
       },
       keyframes: {
         "gradient-fade": {
           "0%, 100%": { "background-position": "0% 50%" },
           "50%": { "background-position": "100% 50%" },
         },
+        "float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        "glow": {
+          "from": { "box-shadow": "0 0 20px rgba(0, 255, 255, 0.5)" },
+          "to": { "box-shadow": "0 0 30px rgba(0, 255, 255, 0.8)" },
+        },
+      },
+      backdropBlur: {
+        xs: "2px",
       },
     },
   },
