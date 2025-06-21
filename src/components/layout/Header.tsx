@@ -34,7 +34,7 @@ const ThemeSwitcher = () => {
           exit={{ y: 20, opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
-          {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
         </motion.div>
       </AnimatePresence>
     </motion.button>
