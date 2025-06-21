@@ -17,7 +17,9 @@ import {
   Save,
   Loader2,
   Copy,
-  CheckCircle
+  CheckCircle,
+  Wand2,
+  Lightbulb
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,14 +31,21 @@ import {
   createGeneratedCV,
   getUserCVs
 } from "@/lib/database";
-import { generateCV, enhanceProfessionalSummary } from "@/lib/gemini";
-import type { CVData } from "@/lib/gemini";
+import { 
+  generateCV, 
+  enhanceProfessionalSummary, 
+  generateExperienceDescription,
+  suggestSkills,
+  type CVData 
+} from "@/lib/api";
 
 const CVBuilderPage = () => {
   const { user } = useAuth();
   const [activeSection, setActiveSection] = useState("personal");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isGeneratingExperience, setIsGeneratingExperience] = useState<number | null>(null);
+  const [isSuggestingSkills, setIsSuggestingSkills] = useState(false);
   const [generatedCV, setGeneratedCV] = useState("");
   const [showPreview, setShowPreview] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -170,6 +179,60 @@ const CVBuilderPage = () => {
       alert('Failed to enhance summary. Please try again.');
     } finally {
       setIsEnhancing(false);
+    }
+  };
+
+  const handleGenerateExperienceDescription = async (index: number) => {
+    const experience = cvData.experiences[index];
+    if (!experience.title || !experience.company) {
+      alert('Please fill in the job title and company first.');
+      return;
+    }
+
+    setIsGeneratingExperience(index);
+    try {
+      const enhanced = await generateExperienceDescription(
+        experience.title,
+        experience.company,
+        experience.description || `Worked as ${experience.title} at ${experience.company}`
+      );
+
+      updateExperience(index, 'description', enhanced);
+    } catch (error) {
+      console.error('Error generating experience description:', error);
+      alert('Failed to generate experience description. Please try again.');
+    } finally {
+      setIsGeneratingExperience(null);
+    }
+  };
+
+  const handleSuggestSkills = async () => {
+    if (cvData.experiences.length === 0) {
+      alert('Please add some work experience first to get skill suggestions.');
+      return;
+    }
+
+    setIsSuggestingSkills(true);
+    try {
+      const suggested = await suggestSkills(cvData.experiences, jobDescription);
+      
+      // Add suggested skills to existing skills (avoid duplicates)
+      setCvData(prev => {
+        const existingSkillNames = prev.skills.map(s => s.name.toLowerCase());
+        const newSkills = suggested.filter(s => 
+          !existingSkillNames.includes(s.name.toLowerCase())
+        );
+        
+        return {
+          ...prev,
+          skills: [...prev.skills, ...newSkills]
+        };
+      });
+    } catch (error) {
+      console.error('Error suggesting skills:', error);
+      alert('Failed to suggest skills. Please try again.');
+    } finally {
+      setIsSuggestingSkills(false);
     }
   };
 
@@ -470,7 +533,21 @@ const CVBuilderPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-medium text-slate-700">Description</label>
+                  <button
+                    onClick={() => handleGenerateExperienceDescription(index)}
+                    disabled={isGeneratingExperience === index || !experience.title || !experience.company}
+                    className="flex items-center space-x-1 px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
+                  >
+                    {isGeneratingExperience === index ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Wand2 className="w-3 h-3" />
+                    )}
+                    <span>Generate with AI</span>
+                  </button>
+                </div>
                 <textarea
                   rows={3}
                   value={experience.description}
@@ -585,20 +662,34 @@ const CVBuilderPage = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <p className="text-slate-600">Add your technical and professional skills.</p>
-        <button
-          onClick={addSkill}
-          className="flex items-center space-x-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Skill</span>
-        </button>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleSuggestSkills}
+            disabled={isSuggestingSkills || cvData.experiences.length === 0}
+            className="flex items-center space-x-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50"
+          >
+            {isSuggestingSkills ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Lightbulb className="w-4 h-4" />
+            )}
+            <span>Suggest Skills</span>
+          </button>
+          <button
+            onClick={addSkill}
+            className="flex items-center space-x-2 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Skill</span>
+          </button>
+        </div>
       </div>
 
       {cvData.skills.length === 0 ? (
         <div className="text-center py-12 text-slate-500">
           <Award className="w-12 h-12 mx-auto mb-4 text-slate-300" />
           <p>No skills added yet.</p>
-          <p className="text-sm">Click "Add Skill" to get started.</p>
+          <p className="text-sm">Click "Add Skill" or "Suggest Skills" to get started.</p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">

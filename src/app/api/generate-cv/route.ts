@@ -1,10 +1,10 @@
+import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Get the API key - Next.js automatically exposes NEXT_PUBLIC_ variables to client-side
-const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
+const apiKey = process.env.GEMINI_API_KEY;
 
 if (!apiKey) {
-  console.warn('NEXT_PUBLIC_GEMINI_API_KEY is not set in environment variables');
+  console.error('GEMINI_API_KEY is not set in environment variables');
 }
 
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
@@ -39,20 +39,24 @@ export interface CVData {
   }>;
 }
 
-export interface GenerateCVRequest {
-  cvData: CVData;
-  jobDescription?: string;
-  cvType?: 'professional' | 'creative' | 'technical' | 'executive';
-}
-
-export async function generateCV({ cvData, jobDescription, cvType = 'professional' }: GenerateCVRequest): Promise<string> {
+export async function POST(request: NextRequest) {
   if (!genAI) {
-    throw new Error('Gemini AI is not configured. Please check your NEXT_PUBLIC_GEMINI_API_KEY environment variable.');
+    return NextResponse.json(
+      { error: 'Gemini AI is not configured. Please check your GEMINI_API_KEY environment variable.' },
+      { status: 500 }
+    );
   }
 
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  try {
+    const { cvData, jobDescription, cvType = 'professional' }: {
+      cvData: CVData;
+      jobDescription?: string;
+      cvType?: 'professional' | 'creative' | 'technical' | 'executive';
+    } = await request.json();
 
-  const prompt = `
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+
+    const prompt = `
 You are an expert CV writer specializing in South African job market. Create a professional, ATS-friendly CV based on the following information:
 
 **Personal Information:**
@@ -103,51 +107,16 @@ ${jobDescription ? `**Target Job Description:**\n${jobDescription}\n\nPlease tai
 Please generate the CV now:
 `;
 
-  try {
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    return response.text();
+    const generatedCV = response.text();
+
+    return NextResponse.json({ cv: generatedCV });
   } catch (error) {
     console.error('Error generating CV:', error);
-    throw new Error('Failed to generate CV. Please try again.');
-  }
-}
-
-export async function enhanceProfessionalSummary(currentSummary: string, experiences: CVData['experiences'], targetRole?: string): Promise<string> {
-  if (!genAI) {
-    throw new Error('Gemini AI is not configured. Please check your NEXT_PUBLIC_GEMINI_API_KEY environment variable.');
-  }
-
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
-  const prompt = `
-You are a professional CV writer. Enhance the following professional summary to make it more compelling and tailored for the South African job market.
-
-**Current Summary:**
-${currentSummary}
-
-**Work Experience Context:**
-${experiences.map(exp => `- ${exp.title} at ${exp.company}: ${exp.description}`).join('\n')}
-
-${targetRole ? `**Target Role:** ${targetRole}` : ''}
-
-**Requirements:**
-1. Keep it concise (3-4 sentences, max 100 words)
-2. Highlight key achievements and skills
-3. Make it compelling and professional
-4. Include relevant keywords for ATS systems
-5. Tailor for South African job market
-6. Focus on value proposition
-
-Please provide an enhanced professional summary:
-`;
-
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text().trim();
-  } catch (error) {
-    console.error('Error enhancing summary:', error);
-    throw new Error('Failed to enhance summary. Please try again.');
+    return NextResponse.json(
+      { error: 'Failed to generate CV. Please try again.' },
+      { status: 500 }
+    );
   }
 }
