@@ -45,12 +45,11 @@ ${jobDescription ? `**Target Job Description:**\n${jobDescription}` : ''}
 5. Skills should be realistic based on their experience level
 6. Include skills that would make them competitive
 
-**Format the response as a JSON array of objects with "name" and "level" properties:**
-Example: [{"name": "Project Management", "level": "Advanced"}, {"name": "Python", "level": "Intermediate"}]
+**CRITICAL: Return ONLY a valid JSON array. No explanations, no markdown formatting, no additional text. Just the JSON array.**
 
 Skill levels should be: Beginner, Intermediate, Advanced, or Expert
 
-Please provide the suggested skills:
+Format: [{"name": "Project Management", "level": "Advanced"}, {"name": "Python", "level": "Intermediate"}]
 `;
 
     const result = await model.generateContent(prompt);
@@ -58,20 +57,59 @@ Please provide the suggested skills:
     let suggestedSkills;
     
     try {
-      // Try to parse as JSON
-      const responseText = response.text().trim();
+      // Clean the response to ensure it's valid JSON
+      let responseText = response.text().trim();
+      
       // Remove any markdown formatting
-      const cleanedResponse = responseText.replace(/```json\n?|\n?```/g, '');
-      suggestedSkills = JSON.parse(cleanedResponse);
+      responseText = responseText.replace(/```json\n?|\n?```/g, '');
+      
+      // Remove any explanatory text before the JSON
+      const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        responseText = jsonMatch[0];
+      }
+      
+      suggestedSkills = JSON.parse(responseText);
+      
+      // Validate the structure
+      if (!Array.isArray(suggestedSkills)) {
+        throw new Error('Response is not an array');
+      }
+      
+      // Ensure each skill has name and level
+      suggestedSkills = suggestedSkills.filter(skill => 
+        skill && typeof skill === 'object' && skill.name && skill.level
+      );
+      
     } catch (parseError) {
-      // If JSON parsing fails, return a fallback response
+      // If JSON parsing fails, return a fallback response based on experience
       console.error('Failed to parse AI response as JSON:', parseError);
-      suggestedSkills = [
+      
+      // Generate fallback skills based on job titles
+      const jobTitles = experiences.map(exp => exp.title.toLowerCase()).join(' ');
+      let fallbackSkills = [
         { name: "Communication", level: "Advanced" },
         { name: "Problem Solving", level: "Advanced" },
         { name: "Team Collaboration", level: "Intermediate" },
         { name: "Project Management", level: "Intermediate" }
       ];
+      
+      // Add tech skills if relevant
+      if (jobTitles.includes('engineer') || jobTitles.includes('developer') || jobTitles.includes('technical')) {
+        fallbackSkills.push(
+          { name: "Software Development", level: "Advanced" },
+          { name: "Technical Documentation", level: "Intermediate" }
+        );
+      }
+      
+      if (jobTitles.includes('manager') || jobTitles.includes('lead')) {
+        fallbackSkills.push(
+          { name: "Leadership", level: "Advanced" },
+          { name: "Strategic Planning", level: "Intermediate" }
+        );
+      }
+      
+      suggestedSkills = fallbackSkills;
     }
 
     return NextResponse.json({ skills: suggestedSkills });

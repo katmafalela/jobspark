@@ -56,6 +56,7 @@ const CVBuilderPage = () => {
   const [jobDescription, setJobDescription] = useState("");
   const [cvType, setCvType] = useState<'professional' | 'creative' | 'technical' | 'executive'>('professional');
   const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [enhancingExperience, setEnhancingExperience] = useState<number | null>(null);
   const [cvData, setCvData] = useState<CVData>({
     personalInfo: {
       fullName: "",
@@ -186,7 +187,7 @@ const CVBuilderPage = () => {
     const experience = cvData.experiences[index];
     if (!experience.title || !experience.company) return;
 
-    setIsGenerating(true);
+    setEnhancingExperience(index);
     try {
       const enhanced = await generateExperienceDescription(
         experience.title,
@@ -204,7 +205,7 @@ const CVBuilderPage = () => {
       console.error('Error generating experience:', error);
       alert('Failed to generate experience description. Please try again.');
     } finally {
-      setIsGenerating(false);
+      setEnhancingExperience(null);
     }
   };
 
@@ -341,6 +342,28 @@ const CVBuilderPage = () => {
     }
   };
 
+  // Helper function to render bullet points properly
+  const renderBulletPoints = (text: string) => {
+    if (!text) return null;
+    
+    const lines = text.split('\n').filter(line => line.trim());
+    
+    return (
+      <ul className="space-y-1">
+        {lines.map((line, index) => {
+          // Remove bullet point if it exists and clean the line
+          const cleanLine = line.replace(/^[•\-\*]\s*/, '').trim();
+          return (
+            <li key={index} className="flex items-start text-sm text-slate-700 leading-relaxed">
+              <span className="text-sky-500 mr-2 mt-1 flex-shrink-0">•</span>
+              <span>{cleanLine}</span>
+            </li>
+          );
+        })}
+      </ul>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -384,7 +407,7 @@ const CVBuilderPage = () => {
                   <select
                     value={cvType}
                     onChange={(e) => setCvType(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                   >
                     <option value="professional">Professional</option>
                     <option value="creative">Creative</option>
@@ -433,7 +456,11 @@ const CVBuilderPage = () => {
                       disabled={isGenerating || cvData.experiences.length === 0}
                       className="w-full flex items-center space-x-2 px-3 py-2 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors disabled:opacity-50"
                     >
-                      <Zap className="w-4 h-4" />
+                      {isGenerating ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Zap className="w-4 h-4" />
+                      )}
                       <span>Suggest Skills</span>
                     </button>
                   </div>
@@ -458,7 +485,7 @@ const CVBuilderPage = () => {
                           type="text"
                           value={cvData.personalInfo.fullName}
                           onChange={(e) => updatePersonalInfo("fullName", e.target.value)}
-                          className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder-white/60"
+                          className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder-white/60 text-lg"
                           placeholder="Full Name"
                         />
                         <div className="grid grid-cols-2 gap-3">
@@ -497,7 +524,7 @@ const CVBuilderPage = () => {
                           {cvData.personalInfo.fullName || "Your Name"}
                           <Edit3 className="inline w-5 h-5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
                         </h1>
-                        <div className="space-y-1 text-white/80">
+                        <div className="space-y-1 text-white/80 text-sm">
                           <div className="flex items-center space-x-4">
                             <div className="flex items-center space-x-1">
                               <Mail className="w-4 h-4" />
@@ -549,7 +576,7 @@ const CVBuilderPage = () => {
                         rows={4}
                         value={cvData.personalInfo.professionalSummary}
                         onChange={(e) => updatePersonalInfo("professionalSummary", e.target.value)}
-                        className="w-full border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        className="w-full border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                         placeholder="Write your professional summary..."
                       />
                       <button
@@ -564,7 +591,7 @@ const CVBuilderPage = () => {
                       className="group cursor-pointer p-3 rounded-lg hover:bg-slate-50 transition-colors"
                       onClick={() => setEditingSection("summary")}
                     >
-                      <p className="text-slate-700 leading-relaxed group-hover:text-slate-900">
+                      <p className="text-sm text-slate-700 leading-relaxed group-hover:text-slate-900">
                         {cvData.personalInfo.professionalSummary || "Click to add your professional summary..."}
                         <Edit3 className="inline w-4 h-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </p>
@@ -591,10 +618,10 @@ const CVBuilderPage = () => {
                     {cvData.experiences.length === 0 ? (
                       <div className="text-center py-8 text-slate-500">
                         <Briefcase className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-                        <p>No work experience added yet</p>
+                        <p className="text-sm">No work experience added yet</p>
                         <button
                           onClick={addExperience}
-                          className="mt-2 text-sky-500 hover:text-sky-600"
+                          className="mt-2 text-sky-500 hover:text-sky-600 text-sm"
                         >
                           Add your first experience
                         </button>
@@ -606,10 +633,14 @@ const CVBuilderPage = () => {
                             <div className="flex space-x-1">
                               <button
                                 onClick={() => handleGenerateExperience(index)}
-                                disabled={isGenerating}
-                                className="p-1 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition-colors"
+                                disabled={enhancingExperience === index}
+                                className="p-1 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition-colors disabled:opacity-50"
                               >
-                                <Sparkles className="w-3 h-3" />
+                                {enhancingExperience === index ? (
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                ) : (
+                                  <Sparkles className="w-3 h-3" />
+                                )}
                               </button>
                               <button
                                 onClick={() => removeExperience(index)}
@@ -626,14 +657,14 @@ const CVBuilderPage = () => {
                                   type="text"
                                   value={exp.title}
                                   onChange={(e) => updateExperience(index, "title", e.target.value)}
-                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                   placeholder="Job Title"
                                 />
                                 <input
                                   type="text"
                                   value={exp.company}
                                   onChange={(e) => updateExperience(index, "company", e.target.value)}
-                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                   placeholder="Company"
                                 />
                               </div>
@@ -642,21 +673,21 @@ const CVBuilderPage = () => {
                                   type="text"
                                   value={exp.location}
                                   onChange={(e) => updateExperience(index, "location", e.target.value)}
-                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                   placeholder="Location"
                                 />
                                 <input
                                   type="month"
                                   value={exp.startDate}
                                   onChange={(e) => updateExperience(index, "startDate", e.target.value)}
-                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                 />
                                 {!exp.isCurrent && (
                                   <input
                                     type="month"
                                     value={exp.endDate}
                                     onChange={(e) => updateExperience(index, "endDate", e.target.value)}
-                                    className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                    className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                   />
                                 )}
                               </div>
@@ -673,7 +704,7 @@ const CVBuilderPage = () => {
                                 rows={3}
                                 value={exp.description}
                                 onChange={(e) => updateExperience(index, "description", e.target.value)}
-                                className="w-full border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                className="w-full border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                 placeholder="Describe your responsibilities and achievements..."
                               />
                               <button
@@ -690,10 +721,10 @@ const CVBuilderPage = () => {
                             >
                               <div className="flex justify-between items-start mb-2">
                                 <div>
-                                  <h3 className="font-semibold text-slate-900">
+                                  <h3 className="font-semibold text-slate-900 text-base">
                                     {exp.title || "Job Title"}
                                   </h3>
-                                  <div className="flex items-center space-x-2 text-slate-600">
+                                  <div className="flex items-center space-x-2 text-slate-600 text-sm">
                                     <Building2 className="w-4 h-4" />
                                     <span>{exp.company || "Company Name"}</span>
                                     {exp.location && (
@@ -711,9 +742,13 @@ const CVBuilderPage = () => {
                                   </span>
                                 </div>
                               </div>
-                              <p className="text-slate-700 text-sm leading-relaxed">
-                                {exp.description || "Click to add job description..."}
-                              </p>
+                              <div className="mt-2">
+                                {exp.description ? (
+                                  renderBulletPoints(exp.description)
+                                ) : (
+                                  <p className="text-sm text-slate-500 italic">Click to add job description...</p>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>
@@ -741,10 +776,10 @@ const CVBuilderPage = () => {
                     {cvData.education.length === 0 ? (
                       <div className="text-center py-8 text-slate-500">
                         <GraduationCap className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-                        <p>No education added yet</p>
+                        <p className="text-sm">No education added yet</p>
                         <button
                           onClick={addEducation}
-                          className="mt-2 text-sky-500 hover:text-sky-600"
+                          className="mt-2 text-sky-500 hover:text-sky-600 text-sm"
                         >
                           Add your education
                         </button>
@@ -767,14 +802,14 @@ const CVBuilderPage = () => {
                                   type="text"
                                   value={edu.degree}
                                   onChange={(e) => updateEducation(index, "degree", e.target.value)}
-                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                   placeholder="Degree"
                                 />
                                 <input
                                   type="text"
                                   value={edu.institution}
                                   onChange={(e) => updateEducation(index, "institution", e.target.value)}
-                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                   placeholder="Institution"
                                 />
                               </div>
@@ -783,14 +818,14 @@ const CVBuilderPage = () => {
                                   type="text"
                                   value={edu.location}
                                   onChange={(e) => updateEducation(index, "location", e.target.value)}
-                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                   placeholder="Location"
                                 />
                                 <input
                                   type="text"
                                   value={edu.graduationYear}
                                   onChange={(e) => updateEducation(index, "graduationYear", e.target.value)}
-                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                   placeholder="Graduation Year"
                                 />
                               </div>
@@ -808,10 +843,10 @@ const CVBuilderPage = () => {
                             >
                               <div className="flex justify-between items-start">
                                 <div>
-                                  <h3 className="font-semibold text-slate-900">
+                                  <h3 className="font-semibold text-slate-900 text-base">
                                     {edu.degree || "Degree"}
                                   </h3>
-                                  <div className="flex items-center space-x-2 text-slate-600">
+                                  <div className="flex items-center space-x-2 text-slate-600 text-sm">
                                     <Building2 className="w-4 h-4" />
                                     <span>{edu.institution || "Institution"}</span>
                                     {edu.location && (
@@ -851,10 +886,10 @@ const CVBuilderPage = () => {
                     {cvData.skills.length === 0 ? (
                       <div className="col-span-2 text-center py-8 text-slate-500">
                         <Award className="w-12 h-12 mx-auto mb-2 text-slate-300" />
-                        <p>No skills added yet</p>
+                        <p className="text-sm">No skills added yet</p>
                         <button
                           onClick={addSkill}
-                          className="mt-2 text-sky-500 hover:text-sky-600"
+                          className="mt-2 text-sky-500 hover:text-sky-600 text-sm"
                         >
                           Add your skills
                         </button>
@@ -902,7 +937,7 @@ const CVBuilderPage = () => {
                               onClick={() => setEditingSection(`skill-${index}`)}
                             >
                               <div className="flex justify-between items-center mb-2">
-                                <span className="font-medium text-slate-900">
+                                <span className="font-medium text-slate-900 text-sm">
                                   {skill.name || "Skill name"}
                                 </span>
                                 <span className="text-xs text-slate-500">{skill.level}</span>

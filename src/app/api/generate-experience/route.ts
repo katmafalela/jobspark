@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `
-You are a professional CV writer. Help enhance a work experience description to make it more compelling and achievement-focused.
+You are a professional CV writer. Transform the basic job description into professional, achievement-focused bullet points.
 
 **Job Details:**
 - Position: ${jobTitle}
@@ -35,21 +35,35 @@ You are a professional CV writer. Help enhance a work experience description to 
 - Basic Description: ${basicDescription}
 
 **Requirements:**
-1. Transform the basic description into professional, achievement-focused bullet points
+1. Create 3-5 professional bullet points
 2. Use strong action verbs (Led, Developed, Implemented, Achieved, etc.)
-3. Quantify achievements where possible (use realistic estimates if specific numbers aren't provided)
+3. Quantify achievements where possible (use realistic estimates)
 4. Make it relevant for the South African job market
-5. Keep it concise but impactful (3-5 bullet points)
-6. Focus on results and value delivered
+5. Focus on results and value delivered
+6. No explanatory text or brackets with additional information
 
-**Format the response as bullet points that can be directly used in a CV:**
+**CRITICAL: Return ONLY the bullet points in plain text format. Each bullet point should start with "• " and be on a new line. Do not include any explanations, introductions, or additional commentary.**
 
-Please provide an enhanced experience description:
+Bullet points:
 `;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const enhancedDescription = response.text().trim();
+    let enhancedDescription = response.text().trim();
+
+    // Clean up the response to ensure proper bullet point formatting
+    enhancedDescription = enhancedDescription
+      .replace(/^(Here's|Here are|Enhanced.*?:|Bullet points:).*?\n?/i, '')
+      .replace(/^\*\*.*?\*\*:?\s*/gm, '')
+      .replace(/\(.*?\)/g, '') // Remove all bracketed explanations
+      .replace(/^\*\s*/gm, '• ') // Convert * to •
+      .replace(/^-\s*/gm, '• ') // Convert - to •
+      .replace(/^\d+\.\s*/gm, '• ') // Convert numbered lists to bullets
+      .split('\n')
+      .filter(line => line.trim()) // Remove empty lines
+      .map(line => line.trim().startsWith('•') ? line.trim() : `• ${line.trim()}`)
+      .join('\n')
+      .trim();
 
     return NextResponse.json({ description: enhancedDescription });
   } catch (error) {

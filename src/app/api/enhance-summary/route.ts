@@ -49,12 +49,21 @@ ${targetRole ? `**Target Role:** ${targetRole}` : ''}
 5. Tailor for South African job market
 6. Focus on value proposition
 
-Please provide an enhanced professional summary:
+**CRITICAL: Return ONLY the enhanced professional summary text. Do not include any explanations, introductions, or additional commentary. Just return the improved summary paragraph.**
+
+Enhanced summary:
 `;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const enhancedSummary = response.text().trim();
+    let enhancedSummary = response.text().trim();
+
+    // Clean up any unwanted formatting or explanatory text
+    enhancedSummary = enhancedSummary
+      .replace(/^(Here's|Here is|Enhanced summary:|The enhanced summary is:).*?:/i, '')
+      .replace(/^\*\*.*?\*\*:?\s*/i, '')
+      .replace(/^Enhanced.*?:\s*/i, '')
+      .trim();
 
     return NextResponse.json({ summary: enhancedSummary });
   } catch (error) {
