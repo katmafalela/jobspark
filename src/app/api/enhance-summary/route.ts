@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       targetRole?: string;
     } = await request.json();
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `
 You are a professional CV writer. Enhance the following professional summary to make it more compelling and tailored for the South African job market.

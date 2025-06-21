@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       cvType?: 'professional' | 'creative' | 'technical' | 'executive';
     } = await request.json();
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `
 You are an expert CV writer specializing in South African job market. Create a professional, ATS-friendly CV based on the following information:

@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       jobDescription?: string;
     } = await request.json();
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const prompt = `
 You are a career advisor specializing in the South African job market. Based on the user's work experience${jobDescription ? ' and target job description' : ''}, suggest relevant skills they should highlight on their CV.
