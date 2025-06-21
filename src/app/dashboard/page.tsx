@@ -15,7 +15,8 @@ import {
   Settings,
   TrendingUp,
   Calendar,
-  Bell
+  Bell,
+  Send
 } from "lucide-react";
 
 const DashboardPage = () => {
