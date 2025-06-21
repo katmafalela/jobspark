@@ -26,7 +26,11 @@ import {
   Building2,
   Palette,
   Type,
-  Zap
+  Zap,
+  Undo,
+  FolderPlus,
+  Folder,
+  MoreVertical
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -36,66 +40,85 @@ import {
   getUserExperiences,
   getUserEducation,
   getUserSkills,
+  getUserCVs,
   createGeneratedCV,
-  getUserCVs
+  updateGeneratedCV,
+  deleteGeneratedCV,
+  getCVSections,
+  createCVSection,
+  updateCVSection,
+  createCVVersion,
+  getLatestCVVersion,
+  type GeneratedCV,
+  type CVSection
 } from "@/lib/database";
 import { generateCV, enhanceProfessionalSummary, generateExperienceDescription, suggestSkills, type CVData } from "@/lib/api";
+import { exportToPDF } from "@/lib/pdf-export";
 
-interface CVSection {
-  id: string;
-  title: string;
-  isComplete: boolean;
-  isEditing: boolean;
+interface CVBuilderState {
+  currentCV: GeneratedCV | null;
+  userCVs: GeneratedCV[];
+  cvSections: CVSection[];
+  showCVSelector: boolean;
 }
 
 const CVBuilderPage = () => {
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const [jobDescription, setJobDescription] = useState("");
   const [cvType, setCvType] = useState<'professional' | 'creative' | 'technical' | 'executive'>('professional');
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [enhancingExperience, setEnhancingExperience] = useState<number | null>(null);
+  const [showNewCVModal, setShowNewCVModal] = useState(false);
+  const [newCVName, setNewCVName] = useState("");
+  
+  const [builderState, setBuilderState] = useState<CVBuilderState>({
+    currentCV: null,
+    userCVs: [],
+    cvSections: [],
+    showCVSelector: false
+  });
+
   const [cvData, setCvData] = useState<CVData>({
     personalInfo: {
       fullName: "",
       email: "",
       phone: "",
       location: "",
-      professionalSummary: ""
+      professionalSummary: "",
+      profileImageUrl: ""
     },
     experiences: [],
     education: [],
     skills: []
   });
 
-  const [sections, setSections] = useState<CVSection[]>([
-    { id: "personal", title: "Personal Info", isComplete: false, isEditing: false },
-    { id: "experience", title: "Experience", isComplete: false, isEditing: false },
-    { id: "education", title: "Education", isComplete: false, isEditing: false },
-    { id: "skills", title: "Skills", isComplete: false, isEditing: false }
-  ]);
-
   useEffect(() => {
     loadUserData();
   }, [user]);
 
   useEffect(() => {
-    updateSectionCompleteness();
-  }, [cvData]);
+    if (builderState.currentCV) {
+      loadCVSections();
+    }
+  }, [builderState.currentCV]);
 
   const loadUserData = async () => {
     if (!user) return;
 
     try {
-      const [profile, experiences, education, skills] = await Promise.all([
+      const [profile, experiences, education, skills, userCVs] = await Promise.all([
         getUserProfile(user.id),
         getUserExperiences(user.id),
         getUserEducation(user.id),
-        getUserSkills(user.id)
+        getUserSkills(user.id),
+        getUserCVs(user.id)
       ]);
 
+      // Load profile data
       if (profile) {
         setCvData(prev => ({
           ...prev,
@@ -104,11 +127,13 @@ const CVBuilderPage = () => {
             email: profile.email || "",
             phone: profile.phone || "",
             location: profile.location || "",
-            professionalSummary: profile.professional_summary || ""
+            professionalSummary: profile.professional_summary || "",
+            profileImageUrl: profile.profile_image_url || ""
           }
         }));
       }
 
+      // Load experiences, education, skills
       setCvData(prev => ({
         ...prev,
         experiences: experiences.map(exp => ({
@@ -132,30 +157,198 @@ const CVBuilderPage = () => {
           level: skill.level
         }))
       }));
+
+      // Set up CV state
+      setBuilderState(prev => ({
+        ...prev,
+        userCVs,
+        currentCV: userCVs[0] || null,
+        showCVSelector: userCVs.length > 1
+      }));
+
     } catch (error) {
       console.error('Error loading user data:', error);
     }
   };
 
-  const updateSectionCompleteness = () => {
-    setSections(prev => prev.map(section => {
-      let isComplete = false;
-      switch (section.id) {
-        case "personal":
-          isComplete = !!(cvData.personalInfo.fullName && cvData.personalInfo.email);
-          break;
-        case "experience":
-          isComplete = cvData.experiences.length > 0 && cvData.experiences.some(exp => exp.title && exp.company);
-          break;
-        case "education":
-          isComplete = cvData.education.length > 0 && cvData.education.some(edu => edu.degree && edu.institution);
-          break;
-        case "skills":
-          isComplete = cvData.skills.length > 0 && cvData.skills.some(skill => skill.name);
-          break;
+  const loadCVSections = async () => {
+    if (!builderState.currentCV) return;
+
+    try {
+      const sections = await getCVSections(builderState.currentCV.id);
+      setBuilderState(prev => ({ ...prev, cvSections: sections }));
+
+      // Apply saved sections to CV data
+      sections.forEach(section => {
+        switch (section.section_type) {
+          case 'summary':
+            setCvData(prev => ({
+              ...prev,
+              personalInfo: { ...prev.personalInfo, professionalSummary: section.section_data.summary }
+            }));
+            break;
+          case 'experience':
+            if (section.section_data.experiences) {
+              setCvData(prev => ({ ...prev, experiences: section.section_data.experiences }));
+            }
+            break;
+          case 'education':
+            if (section.section_data.education) {
+              setCvData(prev => ({ ...prev, education: section.section_data.education }));
+            }
+            break;
+          case 'skills':
+            if (section.section_data.skills) {
+              setCvData(prev => ({ ...prev, skills: section.section_data.skills }));
+            }
+            break;
+        }
+      });
+    } catch (error) {
+      console.error('Error loading CV sections:', error);
+    }
+  };
+
+  const saveSection = async (sectionType: 'summary' | 'experience' | 'education' | 'skills', data: any, aiGenerated: boolean = false) => {
+    if (!builderState.currentCV || !user) return;
+
+    try {
+      // Create version backup before saving
+      const existingSection = builderState.cvSections.find(s => s.section_type === sectionType);
+      if (existingSection) {
+        const latestVersion = await getLatestCVVersion(builderState.currentCV.id, sectionType);
+        const versionNumber = latestVersion ? latestVersion.version_number + 1 : 1;
+        
+        await createCVVersion({
+          cv_id: builderState.currentCV.id,
+          section_type: sectionType,
+          version_number: versionNumber,
+          previous_data: existingSection.section_data
+        });
+
+        // Update existing section
+        await updateCVSection(existingSection.id, {
+          section_data: data,
+          ai_generated: aiGenerated
+        });
+      } else {
+        // Create new section
+        await createCVSection({
+          user_id: user.id,
+          cv_id: builderState.currentCV.id,
+          section_type: sectionType,
+          section_data: data,
+          ai_generated: aiGenerated
+        });
       }
-      return { ...section, isComplete };
-    }));
+
+      // Reload sections
+      await loadCVSections();
+    } catch (error) {
+      console.error('Error saving section:', error);
+      alert('Failed to save section. Please try again.');
+    }
+  };
+
+  const undoSection = async (sectionType: 'summary' | 'experience' | 'education' | 'skills') => {
+    if (!builderState.currentCV) return;
+
+    try {
+      const latestVersion = await getLatestCVVersion(builderState.currentCV.id, sectionType);
+      if (!latestVersion) {
+        alert('No previous version available to undo.');
+        return;
+      }
+
+      const existingSection = builderState.cvSections.find(s => s.section_type === sectionType);
+      if (existingSection) {
+        await updateCVSection(existingSection.id, {
+          section_data: latestVersion.previous_data,
+          ai_generated: false
+        });
+
+        // Apply the undone data to the current state
+        switch (sectionType) {
+          case 'summary':
+            setCvData(prev => ({
+              ...prev,
+              personalInfo: { ...prev.personalInfo, professionalSummary: latestVersion.previous_data.summary }
+            }));
+            break;
+          case 'experience':
+            setCvData(prev => ({ ...prev, experiences: latestVersion.previous_data.experiences }));
+            break;
+          case 'education':
+            setCvData(prev => ({ ...prev, education: latestVersion.previous_data.education }));
+            break;
+          case 'skills':
+            setCvData(prev => ({ ...prev, skills: latestVersion.previous_data.skills }));
+            break;
+        }
+
+        await loadCVSections();
+      }
+    } catch (error) {
+      console.error('Error undoing section:', error);
+      alert('Failed to undo changes. Please try again.');
+    }
+  };
+
+  const createNewCV = async () => {
+    if (!user || !newCVName.trim()) return;
+
+    try {
+      setIsSaving(true);
+      const newCV = await createGeneratedCV({
+        user_id: user.id,
+        title: newCVName,
+        content: "",
+        job_description: null,
+        cv_name: newCVName
+      });
+
+      setBuilderState(prev => ({
+        ...prev,
+        userCVs: [newCV, ...prev.userCVs],
+        currentCV: newCV,
+        cvSections: []
+      }));
+
+      setNewCVName("");
+      setShowNewCVModal(false);
+    } catch (error) {
+      console.error('Error creating new CV:', error);
+      if (error.message?.includes('Maximum of 3 active CVs')) {
+        alert('You can only have 3 active CVs. Please delete one to create a new CV.');
+      } else {
+        alert('Failed to create new CV. Please try again.');
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const switchCV = (cv: GeneratedCV) => {
+    setBuilderState(prev => ({ ...prev, currentCV: cv, showCVSelector: false }));
+  };
+
+  const deleteCV = async (cvId: string) => {
+    if (!confirm('Are you sure you want to delete this CV?')) return;
+
+    try {
+      await deleteGeneratedCV(cvId);
+      const updatedCVs = builderState.userCVs.filter(cv => cv.id !== cvId);
+      
+      setBuilderState(prev => ({
+        ...prev,
+        userCVs: updatedCVs,
+        currentCV: updatedCVs[0] || null,
+        showCVSelector: updatedCVs.length > 1
+      }));
+    } catch (error) {
+      console.error('Error deleting CV:', error);
+      alert('Failed to delete CV. Please try again.');
+    }
   };
 
   const handleEnhanceSummary = async () => {
@@ -175,6 +368,9 @@ const CVBuilderPage = () => {
           professionalSummary: enhanced
         }
       }));
+
+      // Save to database
+      await saveSection('summary', { summary: enhanced }, true);
     } catch (error) {
       console.error('Error enhancing summary:', error);
       alert('Failed to enhance summary. Please try again.');
@@ -195,12 +391,17 @@ const CVBuilderPage = () => {
         experience.description || `Worked as ${experience.title} at ${experience.company}`
       );
 
+      const updatedExperiences = cvData.experiences.map((exp, i) => 
+        i === index ? { ...exp, description: enhanced } : exp
+      );
+
       setCvData(prev => ({
         ...prev,
-        experiences: prev.experiences.map((exp, i) => 
-          i === index ? { ...exp, description: enhanced } : exp
-        )
+        experiences: updatedExperiences
       }));
+
+      // Save to database
+      await saveSection('experience', { experiences: updatedExperiences }, true);
     } catch (error) {
       console.error('Error generating experience:', error);
       alert('Failed to generate experience description. Please try again.');
@@ -220,16 +421,24 @@ const CVBuilderPage = () => {
       const existingSkillNames = cvData.skills.map(s => s.name.toLowerCase());
       const newSkills = suggested.filter(s => !existingSkillNames.includes(s.name.toLowerCase()));
       
-      setCvData(prev => ({
-        ...prev,
-        skills: [...prev.skills, ...newSkills]
-      }));
+      const updatedSkills = [...cvData.skills, ...newSkills];
+      setCvData(prev => ({ ...prev, skills: updatedSkills }));
+
+      // Save to database
+      await saveSection('skills', { skills: updatedSkills }, true);
     } catch (error) {
       console.error('Error suggesting skills:', error);
       alert('Failed to suggest skills. Please try again.');
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleExportPDF = () => {
+    if (!builderState.currentCV) return;
+    
+    const cvName = builderState.currentCV.cv_name || builderState.currentCV.title;
+    exportToPDF(cvData, cvName);
   };
 
   const addExperience = () => {
@@ -378,13 +587,70 @@ const CVBuilderPage = () => {
                 <FileText className="w-8 h-8 text-sky-500" />
                 <div>
                   <h1 className="text-xl font-bold text-slate-900">CV Builder</h1>
-                  <p className="text-sm text-slate-600">Create your professional CV with AI</p>
+                  <p className="text-sm text-slate-600">
+                    {builderState.currentCV ? builderState.currentCV.cv_name || builderState.currentCV.title : 'Create your professional CV'}
+                  </p>
                 </div>
               </div>
             </div>
             
             <div className="flex items-center space-x-3">
-              <button className="flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+              {/* CV Selector */}
+              <div className="relative">
+                <button
+                  onClick={() => setBuilderState(prev => ({ ...prev, showCVSelector: !prev.showCVSelector }))}
+                  className="flex items-center space-x-2 px-3 py-2 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                >
+                  <Folder className="w-4 h-4" />
+                  <span className="text-sm">CVs ({builderState.userCVs.length}/3)</span>
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+
+                {builderState.showCVSelector && (
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-white border border-slate-200 rounded-lg shadow-lg z-50">
+                    <div className="p-3 border-b border-slate-200">
+                      <h3 className="font-semibold text-slate-900">Your CVs</h3>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                      {builderState.userCVs.map((cv) => (
+                        <div key={cv.id} className="flex items-center justify-between p-3 hover:bg-slate-50">
+                          <button
+                            onClick={() => switchCV(cv)}
+                            className={`flex-1 text-left text-sm ${
+                              builderState.currentCV?.id === cv.id ? 'font-semibold text-sky-600' : 'text-slate-700'
+                            }`}
+                          >
+                            {cv.cv_name || cv.title}
+                          </button>
+                          <button
+                            onClick={() => deleteCV(cv.id)}
+                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    {builderState.userCVs.length < 3 && (
+                      <div className="p-3 border-t border-slate-200">
+                        <button
+                          onClick={() => setShowNewCVModal(true)}
+                          className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors"
+                        >
+                          <FolderPlus className="w-4 h-4" />
+                          <span className="text-sm">New CV</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <button 
+                onClick={handleExportPDF}
+                disabled={!builderState.currentCV}
+                className="flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+              >
                 <Download className="w-4 h-4" />
                 <span>Export PDF</span>
               </button>
@@ -392,6 +658,37 @@ const CVBuilderPage = () => {
           </div>
         </div>
       </header>
+
+      {/* New CV Modal */}
+      {showNewCVModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Create New CV</h3>
+            <input
+              type="text"
+              value={newCVName}
+              onChange={(e) => setNewCVName(e.target.value)}
+              placeholder="Enter CV name (e.g., Software Engineer CV)"
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 mb-4"
+            />
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowNewCVModal(false)}
+                className="flex-1 px-4 py-2 border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createNewCV}
+                disabled={!newCVName.trim() || isSaving}
+                className="flex-1 px-4 py-2 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition-colors disabled:opacity-50"
+              >
+                {isSaving ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid lg:grid-cols-5 gap-8">
@@ -428,26 +725,7 @@ const CVBuilderPage = () => {
                   />
                 </div>
 
-                {/* Section Status */}
-                <div>
-                  <h3 className="font-medium text-slate-900 mb-3">Section Status</h3>
-                  <div className="space-y-2">
-                    {sections.map((section) => (
-                      <div key={section.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
-                        <span className="text-sm text-slate-700">{section.title}</span>
-                        <div className="flex items-center space-x-2">
-                          {section.isComplete ? (
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                          ) : (
-                            <div className="w-4 h-4 border-2 border-slate-300 rounded-full" />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* AI Actions */}
+                {/* AI Tools */}
                 <div className="pt-4 border-t border-slate-200">
                   <h3 className="font-medium text-slate-900 mb-3">AI Tools</h3>
                   <div className="space-y-2">
@@ -475,8 +753,18 @@ const CVBuilderPage = () => {
               {/* CV Header */}
               <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-8">
                 <div className="flex items-start space-x-6">
-                  <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
-                    <User className="w-12 h-12 text-white/80" />
+                  <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center overflow-hidden">
+                    {cvData.personalInfo.profileImageUrl ? (
+                      <Image
+                        src={cvData.personalInfo.profileImageUrl}
+                        alt="Profile"
+                        width={96}
+                        height={96}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-12 h-12 text-white/80" />
+                    )}
                   </div>
                   <div className="flex-1">
                     {editingSection === "personal" ? (
@@ -557,6 +845,13 @@ const CVBuilderPage = () => {
                     </h2>
                     <div className="flex space-x-2">
                       <button
+                        onClick={() => undoSection('summary')}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                      >
+                        <Undo className="w-3 h-3" />
+                        <span>Undo</span>
+                      </button>
+                      <button
                         onClick={handleEnhanceSummary}
                         disabled={isEnhancing || !cvData.personalInfo.professionalSummary}
                         className="flex items-center space-x-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors disabled:opacity-50"
@@ -579,12 +874,23 @@ const CVBuilderPage = () => {
                         className="w-full border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                         placeholder="Write your professional summary..."
                       />
-                      <button
-                        onClick={() => setEditingSection(null)}
-                        className="px-3 py-1 bg-green-500 text-white rounded text-sm"
-                      >
-                        Done
-                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => {
+                            setEditingSection(null);
+                            saveSection('summary', { summary: cvData.personalInfo.professionalSummary });
+                          }}
+                          className="px-3 py-1 bg-green-500 text-white rounded text-sm"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => setEditingSection(null)}
+                          className="px-3 py-1 bg-gray-500 text-white rounded text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <div 
@@ -606,13 +912,22 @@ const CVBuilderPage = () => {
                       <Briefcase className="w-5 h-5 mr-2 text-sky-500" />
                       Work Experience
                     </h2>
-                    <button
-                      onClick={addExperience}
-                      className="flex items-center space-x-1 px-2 py-1 text-xs bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Add</span>
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => undoSection('experience')}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                      >
+                        <Undo className="w-3 h-3" />
+                        <span>Undo</span>
+                      </button>
+                      <button
+                        onClick={addExperience}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add</span>
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-6">
                     {cvData.experiences.length === 0 ? (
@@ -707,12 +1022,23 @@ const CVBuilderPage = () => {
                                 className="w-full border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
                                 placeholder="Describe your responsibilities and achievements..."
                               />
-                              <button
-                                onClick={() => setEditingSection(null)}
-                                className="px-3 py-1 bg-green-500 text-white rounded text-sm"
-                              >
-                                Done
-                              </button>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingSection(null);
+                                    saveSection('experience', { experiences: cvData.experiences });
+                                  }}
+                                  className="px-3 py-1 bg-green-500 text-white rounded text-sm"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => setEditingSection(null)}
+                                  className="px-3 py-1 bg-gray-500 text-white rounded text-sm"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <div 
@@ -764,13 +1090,22 @@ const CVBuilderPage = () => {
                       <GraduationCap className="w-5 h-5 mr-2 text-sky-500" />
                       Education
                     </h2>
-                    <button
-                      onClick={addEducation}
-                      className="flex items-center space-x-1 px-2 py-1 text-xs bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Add</span>
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => undoSection('education')}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                      >
+                        <Undo className="w-3 h-3" />
+                        <span>Undo</span>
+                      </button>
+                      <button
+                        onClick={addEducation}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add</span>
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-4">
                     {cvData.education.length === 0 ? (
@@ -829,12 +1164,23 @@ const CVBuilderPage = () => {
                                   placeholder="Graduation Year"
                                 />
                               </div>
-                              <button
-                                onClick={() => setEditingSection(null)}
-                                className="px-3 py-1 bg-green-500 text-white rounded text-sm"
-                              >
-                                Done
-                              </button>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingSection(null);
+                                    saveSection('education', { education: cvData.education });
+                                  }}
+                                  className="px-3 py-1 bg-green-500 text-white rounded text-sm"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => setEditingSection(null)}
+                                  className="px-3 py-1 bg-gray-500 text-white rounded text-sm"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <div 
@@ -874,13 +1220,22 @@ const CVBuilderPage = () => {
                       <Award className="w-5 h-5 mr-2 text-sky-500" />
                       Skills
                     </h2>
-                    <button
-                      onClick={addSkill}
-                      className="flex items-center space-x-1 px-2 py-1 text-xs bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
-                    >
-                      <Plus className="w-3 h-3" />
-                      <span>Add</span>
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => undoSection('skills')}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
+                      >
+                        <Undo className="w-3 h-3" />
+                        <span>Undo</span>
+                      </button>
+                      <button
+                        onClick={addSkill}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Add</span>
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     {cvData.skills.length === 0 ? (
@@ -924,12 +1279,23 @@ const CVBuilderPage = () => {
                                 <option value="Advanced">Advanced</option>
                                 <option value="Expert">Expert</option>
                               </select>
-                              <button
-                                onClick={() => setEditingSection(null)}
-                                className="px-2 py-1 bg-green-500 text-white rounded text-xs"
-                              >
-                                Done
-                              </button>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingSection(null);
+                                    saveSection('skills', { skills: cvData.skills });
+                                  }}
+                                  className="px-2 py-1 bg-green-500 text-white rounded text-xs"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={() => setEditingSection(null)}
+                                  className="px-2 py-1 bg-gray-500 text-white rounded text-xs"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
                             </div>
                           ) : (
                             <div 

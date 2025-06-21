@@ -52,6 +52,28 @@ export interface GeneratedCV {
   title: string;
   content: string;
   job_description: string | null;
+  version: number;
+  is_active: boolean;
+  cv_name: string | null;
+  created_at: string;
+}
+
+export interface CVSection {
+  id: string;
+  user_id: string;
+  cv_id: string;
+  section_type: 'summary' | 'experience' | 'education' | 'skills';
+  section_data: any;
+  ai_generated: boolean;
+  created_at: string;
+}
+
+export interface CVVersion {
+  id: string;
+  cv_id: string;
+  section_type: string;
+  version_number: number;
+  previous_data: any;
   created_at: string;
 }
 
@@ -238,16 +260,29 @@ export async function getUserCVs(userId: string): Promise<GeneratedCV[]> {
     .from('generated_cvs')
     .select('*')
     .eq('user_id', userId)
+    .eq('is_active', true)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
   return data || [];
 }
 
-export async function createGeneratedCV(cv: Omit<GeneratedCV, 'id' | 'created_at'>): Promise<GeneratedCV> {
+export async function createGeneratedCV(cv: Omit<GeneratedCV, 'id' | 'created_at' | 'version' | 'is_active'>): Promise<GeneratedCV> {
   const { data, error } = await supabase
     .from('generated_cvs')
-    .insert([cv])
+    .insert([{ ...cv, version: 1, is_active: true }])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateGeneratedCV(id: string, updates: Partial<GeneratedCV>): Promise<GeneratedCV> {
+  const { data, error } = await supabase
+    .from('generated_cvs')
+    .update(updates)
+    .eq('id', id)
     .select()
     .single();
 
@@ -258,8 +293,91 @@ export async function createGeneratedCV(cv: Omit<GeneratedCV, 'id' | 'created_at
 export async function deleteGeneratedCV(id: string): Promise<void> {
   const { error } = await supabase
     .from('generated_cvs')
+    .update({ is_active: false })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
+// CV Sections Functions
+export async function getCVSections(cvId: string): Promise<CVSection[]> {
+  const { data, error } = await supabase
+    .from('cv_sections')
+    .select('*')
+    .eq('cv_id', cvId)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function createCVSection(section: Omit<CVSection, 'id' | 'created_at'>): Promise<CVSection> {
+  const { data, error } = await supabase
+    .from('cv_sections')
+    .insert([section])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function updateCVSection(id: string, updates: Partial<CVSection>): Promise<CVSection> {
+  const { data, error } = await supabase
+    .from('cv_sections')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteCVSection(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('cv_sections')
     .delete()
     .eq('id', id);
 
   if (error) throw error;
+}
+
+// CV Versions Functions (for undo functionality)
+export async function createCVVersion(version: Omit<CVVersion, 'id' | 'created_at'>): Promise<CVVersion> {
+  const { data, error } = await supabase
+    .from('cv_versions')
+    .insert([version])
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function getCVVersions(cvId: string, sectionType: string): Promise<CVVersion[]> {
+  const { data, error } = await supabase
+    .from('cv_versions')
+    .select('*')
+    .eq('cv_id', cvId)
+    .eq('section_type', sectionType)
+    .order('version_number', { ascending: false })
+    .limit(5); // Keep last 5 versions
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function getLatestCVVersion(cvId: string, sectionType: string): Promise<CVVersion | null> {
+  const { data, error } = await supabase
+    .from('cv_versions')
+    .select('*')
+    .eq('cv_id', cvId)
+    .eq('section_type', sectionType)
+    .order('version_number', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
 }
