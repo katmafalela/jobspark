@@ -39,7 +39,6 @@ const TimelineStep = ({ step, index }: { step: any, index: number }) => {
         onscreen: {
             scale: 1,
             transition: { type: "spring", duration: 0.8, bounce: 0.3 },
-            
         }
     };
     
@@ -47,36 +46,36 @@ const TimelineStep = ({ step, index }: { step: any, index: number }) => {
         offscreen: { opacity: 0 },
         onscreen: {
             opacity: [0, 0.7, 0],
-            scale: [1, 2, 1],
-            transition: { duration: 1.5, repeat: Infinity, repeatDelay: 1, ease: "easeInOut" }
+            scale: [1, 2.5, 1],
+            transition: { duration: 2, repeat: Infinity, repeatDelay: 1, ease: "easeInOut" }
         }
     };
 
-
     return (
         <motion.div 
-            className="flex items-start"
+            className="relative"
             initial="offscreen"
             whileInView="onscreen"
             viewport={{ once: true, amount: 0.5 }}
         >
-            <div className={`w-1/2 ${isReversed ? 'order-2' : 'order-1'}`}>
-                <motion.div variants={cardVariants} className="p-1">
-                    <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-lg hover:shadow-xl transition-shadow duration-300">
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">{step.title}</h3>
-                        <p className="text-slate-600 leading-relaxed">{step.description}</p>
-                    </div>
-                </motion.div>
+            <div className={`flex items-start ${isReversed ? 'flex-row-reverse' : ''}`}>
+                <div className="w-1/2">
+                    <motion.div variants={cardVariants} className={`w-full ${isReversed ? 'pl-8' : 'pr-8'}`}>
+                        <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-lg hover:shadow-xl transition-shadow duration-300">
+                            <h3 className="text-xl font-bold text-slate-800 mb-2">{step.title}</h3>
+                            <p className="text-slate-600 leading-relaxed">{step.description}</p>
+                        </div>
+                    </motion.div>
+                </div>
+                <div className="w-1/2" /> {/* This is a spacer */}
             </div>
-
-            <div className="w-16 flex justify-center order-1">
-                 <motion.div variants={markerVariants} className="relative w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center border-4 border-white shadow-md">
+            
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 h-full flex items-start justify-center">
+                 <motion.div variants={markerVariants} className="relative w-12 h-12 rounded-full bg-sky-500 flex items-center justify-center border-4 border-white shadow-md z-10">
                     <step.icon className="w-6 h-6 text-white" />
-                    <motion.div variants={markerGlowVariants} className="absolute w-full h-full bg-sky-500 rounded-full blur-md" />
+                    <motion.div variants={markerGlowVariants} className="absolute w-full h-full bg-sky-500 rounded-full blur-lg" />
                 </motion.div>
             </div>
-
-            <div className={`w-1/2 ${isReversed ? 'order-1' : 'order-2'}`}></div>
         </motion.div>
     );
 }
@@ -108,10 +107,10 @@ export const HowItWorks = () => {
         </motion.div>
 
         <div ref={containerRef} className="relative max-w-3xl mx-auto">
-            <div className="absolute left-[calc(50%_-_2px)] top-6 bottom-6 w-1 bg-slate-200" />
+            <div className="absolute left-1/2 -translate-x-1/2 top-6 bottom-6 w-1 bg-slate-200" />
             <motion.div 
                 style={{ height: timelineHeight }}
-                className="absolute left-[calc(50%_-_2px)] top-6 w-1 bg-sky-500" 
+                className="absolute left-1/2 -translate-x-1/2 top-6 w-1 bg-sky-500" 
             />
             
             <div className="flex flex-col gap-y-24">
