@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useMotionValue, useTransform } from "framer-motion";
 import { FileText, MessageSquare, Briefcase, Target } from "lucide-react";
 import React from "react";
 
@@ -21,50 +21,85 @@ const itemVariants = {
   },
 };
 
-// --- NEW Interactive Feature Card with Animated Border ---
-const FeatureCard = ({ feature }: { feature: any }) => {
+// --- NEW Multi-Layered Interactive Parallax Card ---
+const InteractiveFeatureCard = ({ feature }: { feature: any }) => {
+    const cardRef = React.useRef<HTMLDivElement>(null);
+    const mouseX = useMotionValue(0);
+    const mouseY = useMotionValue(0);
+
+    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (!cardRef.current) return;
+        const { left, top, width, height } = cardRef.current.getBoundingClientRect();
+        mouseX.set(e.clientX - left);
+        mouseY.set(e.clientY - top);
+    };
+
+    const handleMouseLeave = () => {
+        mouseX.set(0);
+        mouseY.set(0);
+    };
+    
+    // Parallax transformations for inner elements
+    const iconX = useTransform(mouseX, [0, 300], [15, -15]);
+    const iconY = useTransform(mouseY, [0, 380], [15, -15]);
+    const titleX = useTransform(mouseX, [0, 300], [8, -8]);
+    const titleY = useTransform(mouseY, [0, 380], [8, -8]);
+    const textX = useTransform(mouseX, [0, 300], [4, -4]);
+    const textY = useTransform(mouseY, [0, 380], [4, -4]);
+    
+    // 3D Tilt for the card itself
+    const rotateX = useTransform(mouseY, [0, 380], [-7, 7]);
+    const rotateY = useTransform(mouseX, [0, 300], [7, -7]);
+    
+    // Dynamic glow effect
+    const glowX = useTransform(mouseX, [0, 300], [-100, 400]);
+    const glowY = useTransform(mouseY, [0, 380], [-100, 480]);
+
+
     return (
         <motion.div
+            ref={cardRef}
             variants={itemVariants}
-            className="relative w-full aspect-[4/5] p-px rounded-3xl overflow-hidden
-                       bg-slate-100 border border-slate-200
-                       hover:bg-white hover:border-transparent transition-colors duration-500"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+            style={{ rotateX, rotateY, perspective: 1000 }}
+            className="group relative w-full aspect-[4/5] p-8 rounded-3xl overflow-hidden
+                       bg-white/40 backdrop-blur-lg 
+                       border border-slate-200/50 shadow-2xl shadow-slate-300/20"
         >
-             {/* This inner div is for the main content styling */}
-             <div className="relative z-10 w-full h-full bg-white/80 backdrop-blur-md rounded-[23px] p-8 text-center flex flex-col items-center justify-center">
-                
-                {/* The "Comet" that orbits on hover */}
-                <motion.div 
-                    className="absolute -z-10 w-40 h-40 opacity-0 group-hover:opacity-100"
-                    style={{
-                        background: 'radial-gradient(circle, #0ea5e9, transparent 35%)',
-                        top: '-50px',
-                        left: '-50px',
-                    }}
-                    whileHover={{
-                        opacity: [0.5, 1, 0.5],
-                        x: [0, 230, 230, 0, 0],
-                        y: [0, 0, 260, 260, 0],
-                        transition: {
-                            duration: 4,
-                            repeat: Infinity,
-                            ease: "linear"
-                        }
-                    }}
-                />
-
+            <motion.div 
+                className="absolute inset-0 z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{
+                    x: glowX,
+                    y: glowY,
+                    background: "radial-gradient(circle, #0ea5e966, transparent 50%)",
+                }}
+            />
+            
+            <div className="relative z-10 flex flex-col items-center justify-center text-center h-full">
                 <motion.div
+                    style={{ x: iconX, y: iconY }}
                     className="p-4 bg-white rounded-full mb-6 shadow-lg"
-                    whileHover={{ scale: 1.1 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 15 }}
                 >
                     <feature.icon className="w-10 h-10 text-sky-500" />
                 </motion.div>
-                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                
+                <motion.h3 
+                    style={{ x: titleX, y: titleY }}
+                    className="text-xl font-bold text-slate-900 mb-2"
+                    transition={{ type: "spring", stiffness: 350, damping: 15 }}
+                >
                     {feature.title}
-                </h3>
-                <p className="text-slate-600 leading-relaxed max-w-xs">
+                </motion.h3>
+                
+                <motion.p 
+                    style={{ x: textX, y: textY }}
+                    className="text-slate-600 leading-relaxed max-w-xs"
+                    transition={{ type: "spring", stiffness: 350, damping: 15 }}
+                >
                     {feature.description}
-                </p>
+                </motion.p>
             </div>
         </motion.div>
     );
@@ -80,9 +115,9 @@ export const Features = () => {
   ];
 
   return (
-    <section className="py-24 bg-white relative">
+    <section className="py-24 bg-slate-50 relative">
         {/* Background Grid */}
-        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:2rem_2rem] opacity-50" />
+        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:2.5rem_2.5rem] opacity-50" />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <motion.div
@@ -105,10 +140,10 @@ export const Features = () => {
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.1 }}
-                className="grid sm:grid-cols-2 md:grid-cols-4 gap-8 group" // Add group here
+                className="grid sm:grid-cols-2 md:grid-cols-4 gap-8"
             >
             {features.map((feature) => (
-                <FeatureCard key={feature.title} feature={feature} />
+                <InteractiveFeatureCard key={feature.title} feature={feature} />
             ))}
             </motion.div>
         </div>
