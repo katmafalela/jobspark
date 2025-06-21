@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, CheckCircle, Shield, Zap, AlertCircle, Clock, RefreshCw } from "lucide-react";
 import Link from "next/link";
@@ -157,8 +157,8 @@ const AnimatedBenefits = () => {
     );
 };
 
-// --- Main AuthPage Component ---
-const AuthPage = () => {
+// --- Auth Page Content Component (wrapped in Suspense) ---
+const AuthPageContent = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
@@ -545,6 +545,27 @@ const AuthPage = () => {
         </div>
       </main>
     </div>
+  );
+};
+
+// --- Loading Component ---
+const AuthPageLoading = () => {
+  return (
+    <div className="min-h-screen w-full bg-slate-50 relative overflow-hidden flex items-center justify-center p-4">
+      <div className="flex items-center space-x-2">
+        <div className="w-8 h-8 border-4 border-sky-500/30 border-t-sky-500 rounded-full animate-spin"></div>
+        <span className="text-slate-600 font-medium">Loading...</span>
+      </div>
+    </div>
+  );
+};
+
+// --- Main AuthPage Component ---
+const AuthPage = () => {
+  return (
+    <Suspense fallback={<AuthPageLoading />}>
+      <AuthPageContent />
+    </Suspense>
   );
 };
 
