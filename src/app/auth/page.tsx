@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Lock, User, Eye, EyeOff, Sparkles, ArrowLeft, CheckCircle, Shield, Zap, AlertCircle, Clock, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -174,6 +174,24 @@ const AuthPage = () => {
   
   const { signUp, signIn, signInWithGoogle, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Check for error parameters
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error) {
+      switch (error) {
+        case 'callback_error':
+          setErrors({ general: 'There was an error completing your sign in. Please try again.' });
+          break;
+        case 'unexpected_error':
+          setErrors({ general: 'An unexpected error occurred. Please try again.' });
+          break;
+        default:
+          setErrors({ general: 'An error occurred during authentication.' });
+      }
+    }
+  }, [searchParams]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -227,6 +245,8 @@ const AuthPage = () => {
         if (error) {
           if (error.message.includes('Email not confirmed')) {
             setErrors({ general: 'Please check your email and click the verification link before signing in.' });
+          } else if (error.message.includes('Invalid login credentials')) {
+            setErrors({ general: 'Invalid email or password. Please check your credentials and try again.' });
           } else {
             setErrors({ general: error.message });
           }
@@ -236,7 +256,11 @@ const AuthPage = () => {
       } else {
         const { error } = await signUp(formData.email, formData.password, formData.name);
         if (error) {
-          setErrors({ general: error.message });
+          if (error.message.includes('already registered')) {
+            setErrors({ general: 'An account with this email already exists. Please sign in instead.' });
+          } else {
+            setErrors({ general: error.message });
+          }
         } else {
           // Show email verification screen
           setSignupEmail(formData.email);
@@ -244,7 +268,8 @@ const AuthPage = () => {
         }
       }
     } catch (error: any) {
-      setErrors({ general: 'An unexpected error occurred' });
+      console.error('Authentication error:', error);
+      setErrors({ general: 'An unexpected error occurred. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -252,14 +277,19 @@ const AuthPage = () => {
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
+    setErrors({});
+    
     try {
       const { error } = await signInWithGoogle();
       if (error) {
-        setErrors({ general: error.message });
+        console.error('Google sign in error:', error);
+        setErrors({ general: 'Failed to sign in with Google. Please try again.' });
+        setIsLoading(false);
       }
+      // Don't set loading to false here as the redirect will handle it
     } catch (error: any) {
-      setErrors({ general: 'Failed to sign in with Google' });
-    } finally {
+      console.error('Google sign in error:', error);
+      setErrors({ general: 'Failed to sign in with Google. Please try again.' });
       setIsLoading(false);
     }
   };
@@ -270,6 +300,10 @@ const AuthPage = () => {
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+    // Clear general error when user starts typing
+    if (errors.general) {
+      setErrors(prev => ({ ...prev, general: '' }));
     }
   };
 
@@ -472,13 +506,19 @@ const AuthPage = () => {
                                         disabled={isLoading}
                                         className="w-full bg-white border border-slate-200 text-slate-700 py-3 rounded-xl font-medium hover:border-slate-300 transition-all flex items-center justify-center space-x-3 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
-                                        <svg className="w-5 h-5" viewBox="0 0 24 24">
-                                            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                                        </svg>
-                                        <span>Continue with Google</span>
+                                        {isLoading ? (
+                                            <div className="w-5 h-5 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                                        ) : (
+                                            <>
+                                                <svg className="w-5 h-5" viewBox="0 0 24 24">
+                                                    <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                                    <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                                    <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                                    <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                                </svg>
+                                                <span>Continue with Google</span>
+                                            </>
+                                        )}
                                     </motion.button>
                                     
                                     <p className="text-center pt-4 text-slate-600">

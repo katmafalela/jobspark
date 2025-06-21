@@ -11,9 +11,17 @@ export const useAuth = () => {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setUser(session?.user as User || null);
-      setLoading(false);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error getting session:', error);
+        }
+        setUser(session?.user as User || null);
+      } catch (error) {
+        console.error('Error in getInitialSession:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     getInitialSession();
@@ -21,8 +29,17 @@ export const useAuth = () => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setUser(session?.user as User || null);
         setLoading(false);
+
+        // Handle the session after OAuth redirect
+        if (event === 'SIGNED_IN' && session) {
+          // Redirect to dashboard after successful sign in
+          if (typeof window !== 'undefined') {
+            window.location.href = '/dashboard';
+          }
+        }
       }
     );
 
@@ -44,6 +61,7 @@ export const useAuth = () => {
       if (error) throw error;
       return { data, error: null };
     } catch (error: any) {
+      console.error('Sign up error:', error);
       return { data: null, error: { message: error.message } as AuthError };
     }
   };
@@ -58,6 +76,7 @@ export const useAuth = () => {
       if (error) throw error;
       return { data, error: null };
     } catch (error: any) {
+      console.error('Sign in error:', error);
       return { data: null, error: { message: error.message } as AuthError };
     }
   };
@@ -68,6 +87,7 @@ export const useAuth = () => {
       if (error) throw error;
       return { error: null };
     } catch (error: any) {
+      console.error('Sign out error:', error);
       return { error: { message: error.message } as AuthError };
     }
   };
@@ -77,13 +97,18 @@ export const useAuth = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: `${window.location.origin}/auth/callback`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
 
       if (error) throw error;
       return { data, error: null };
     } catch (error: any) {
+      console.error('Google sign in error:', error);
       return { data: null, error: { message: error.message } as AuthError };
     }
   };
