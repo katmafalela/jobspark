@@ -1,10 +1,10 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Check if we're in a browser environment and handle missing env var gracefully
-const apiKey = typeof window === 'undefined' ? process.env.GEMINI_API_KEY : '';
+const apiKey = typeof window === 'undefined' ? process.env.NEXT_PUBLIC_GEMINI_API_KEY : '';
 
 if (!apiKey && typeof window === 'undefined') {
-  console.warn('GEMINI_API_KEY is not set in environment variables');
+  console.warn('NEXT_PUBLIC_GEMINI_API_KEY is not set in environment variables');
 }
 
 const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
@@ -47,7 +47,7 @@ export interface GenerateCVRequest {
 
 export async function generateCV({ cvData, jobDescription, cvType = 'professional' }: GenerateCVRequest): Promise<string> {
   if (!genAI) {
-    throw new Error('Gemini AI is not configured. Please check your GEMINI_API_KEY environment variable.');
+    throw new Error('Gemini AI is not configured. Please check your NEXT_PUBLIC_GEMINI_API_KEY environment variable.');
   }
 
   const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
@@ -115,7 +115,7 @@ Please generate the CV now:
 
 export async function enhanceProfessionalSummary(currentSummary: string, experiences: CVData['experiences'], targetRole?: string): Promise<string> {
   if (!genAI) {
-    throw new Error('Gemini AI is not configured. Please check your GEMINI_API_KEY environment variable.');
+    throw new Error('Gemini AI is not configured. Please check your NEXT_PUBLIC_GEMINI_API_KEY environment variable.');
   }
 
   const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
