@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Check if we're in a browser environment and handle missing env var gracefully
-const apiKey = typeof window === 'undefined' ? process.env.NEXT_PUBLIC_GEMINI_API_KEY : '';
+// Get the API key - Next.js automatically exposes NEXT_PUBLIC_ variables to client-side
+const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
 
-if (!apiKey && typeof window === 'undefined') {
+if (!apiKey) {
   console.warn('NEXT_PUBLIC_GEMINI_API_KEY is not set in environment variables');
 }
 
