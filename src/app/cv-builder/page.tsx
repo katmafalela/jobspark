@@ -18,12 +18,15 @@ import {
   Loader2,
   Copy,
   CheckCircle,
-  Wand2,
-  Lightbulb,
-  AlertCircle,
   Edit3,
-  Camera,
-  ExternalLink
+  MapPin,
+  Mail,
+  Phone,
+  Calendar,
+  Building2,
+  Palette,
+  Type,
+  Zap
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -34,1296 +37,890 @@ import {
   getUserEducation,
   getUserSkills,
   createGeneratedCV,
-  getUserCVs,
-  updateUserProfile,
-  createUserExperience,
-  updateUserExperience,
-  deleteUserExperience,
-  createUserEducation,
-  updateUserEducation,
-  deleteUserEducation,
-  createUserSkill,
-  updateUserSkill,
-  deleteUserSkill
+  getUserCVs
 } from "@/lib/database";
-import { 
-  generateCV, 
-  enhanceProfessionalSummary, 
-  generateExperienceDescription,
-  suggestSkills,
-  type CVData 
-} from "@/lib/api";
+import { generateCV, enhanceProfessionalSummary, generateExperienceDescription, suggestSkills, type CVData } from "@/lib/api";
 
-interface UserProfile {
+interface CVSection {
   id: string;
-  user_id: string;
-  full_name: string | null;
-  email: string | null;
-  phone: string | null;
-  location: string | null;
-  professional_summary: string | null;
-  profile_image_url: string | null;
-  onboarding_completed: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Experience {
-  id?: string;
   title: string;
-  company: string;
-  location: string | null;
-  start_date: string;
-  end_date: string | null;
-  is_current: boolean;
-  description: string | null;
-}
-
-interface Education {
-  id?: string;
-  degree: string;
-  institution: string;
-  location: string | null;
-  graduation_year: string;
-  description: string | null;
-}
-
-interface Skill {
-  id?: string;
-  name: string;
-  level: string;
+  isComplete: boolean;
+  isEditing: boolean;
 }
 
 const CVBuilderPage = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("preview");
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showPreview, setShowPreview] = useState(true);
-  const [editingSection, setEditingSection] = useState<string | null>(null);
-  
-  // Form data states
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [experiences, setExperiences] = useState<Experience[]>([]);
-  const [education, setEducation] = useState<Education[]>([]);
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [generatedCV, setGeneratedCV] = useState<string>("");
-  const [cvs, setCvs] = useState([]);
-
-  // AI enhancement states
-  const [enhancingSummary, setEnhancingSummary] = useState(false);
-  const [generatingExperience, setGeneratingExperience] = useState<string | null>(null);
-  const [suggestingSkills, setSuggestingSkills] = useState(false);
-
-  // CV customization
-  const [cvStyle, setCvStyle] = useState<'professional' | 'creative' | 'technical' | 'executive'>('professional');
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [jobDescription, setJobDescription] = useState("");
+  const [cvType, setCvType] = useState<'professional' | 'creative' | 'technical' | 'executive'>('professional');
+  const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [cvData, setCvData] = useState<CVData>({
+    personalInfo: {
+      fullName: "",
+      email: "",
+      phone: "",
+      location: "",
+      professionalSummary: ""
+    },
+    experiences: [],
+    education: [],
+    skills: []
+  });
+
+  const [sections, setSections] = useState<CVSection[]>([
+    { id: "personal", title: "Personal Info", isComplete: false, isEditing: false },
+    { id: "experience", title: "Experience", isComplete: false, isEditing: false },
+    { id: "education", title: "Education", isComplete: false, isEditing: false },
+    { id: "skills", title: "Skills", isComplete: false, isEditing: false }
+  ]);
 
   useEffect(() => {
-    if (user) {
-      loadUserData();
-    }
+    loadUserData();
   }, [user]);
+
+  useEffect(() => {
+    updateSectionCompleteness();
+  }, [cvData]);
 
   const loadUserData = async () => {
     if (!user) return;
-    
-    setIsLoading(true);
+
     try {
-      const [profileData, experienceData, educationData, skillsData, cvsData] = await Promise.all([
+      const [profile, experiences, education, skills] = await Promise.all([
         getUserProfile(user.id),
         getUserExperiences(user.id),
         getUserEducation(user.id),
-        getUserSkills(user.id),
-        getUserCVs(user.id)
+        getUserSkills(user.id)
       ]);
 
-      setProfile(profileData);
-      setExperiences(experienceData || []);
-      setEducation(educationData || []);
-      setSkills(skillsData || []);
-      setCvs(cvsData || []);
-
-      // Generate initial CV if we have data
-      if (profileData && (experienceData?.length || educationData?.length || skillsData?.length)) {
-        await generateInitialCV(profileData, experienceData || [], educationData || [], skillsData || []);
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const generateInitialCV = async (
-    profileData: UserProfile,
-    experienceData: Experience[],
-    educationData: Education[],
-    skillsData: Skill[]
-  ) => {
-    try {
-      const cvData: CVData = {
-        personalInfo: {
-          fullName: profileData.full_name || '',
-          email: profileData.email || '',
-          phone: profileData.phone || '',
-          location: profileData.location || '',
-          professionalSummary: profileData.professional_summary || ''
-        },
-        experiences: experienceData.map(exp => ({
-          title: exp.title,
-          company: exp.company,
-          location: exp.location || '',
-          startDate: exp.start_date,
-          endDate: exp.is_current ? 'Present' : (exp.end_date || ''),
-          isCurrent: exp.is_current,
-          description: exp.description || ''
-        })),
-        education: educationData.map(edu => ({
-          degree: edu.degree,
-          institution: edu.institution,
-          location: edu.location || '',
-          graduationYear: edu.graduation_year,
-          description: edu.description || ''
-        })),
-        skills: skillsData.map(skill => ({
-          name: skill.name,
-          level: skill.level
-        }))
-      };
-
-      const cv = await generateCV({ cvData, cvType: cvStyle });
-      setGeneratedCV(cv);
-    } catch (error) {
-      console.error('Error generating initial CV:', error);
-    }
-  };
-
-  const handleProfileUpdate = async (field: string, value: string) => {
-    if (!profile || !user) return;
-    
-    const updatedProfile = { ...profile, [field]: value };
-    setProfile(updatedProfile);
-    
-    try {
-      await updateUserProfile(user.id, { [field]: value });
-    } catch (error) {
-      console.error('Error updating profile:', error);
-    }
-  };
-
-  const addExperience = () => {
-    const newExperience: Experience = {
-      title: "",
-      company: "",
-      location: "",
-      start_date: "",
-      end_date: "",
-      is_current: false,
-      description: ""
-    };
-    setExperiences([...experiences, newExperience]);
-  };
-
-  const updateExperience = async (index: number, field: string, value: string | boolean) => {
-    const updated = experiences.map((exp, i) => 
-      i === index ? { ...exp, [field]: value } : exp
-    );
-    setExperiences(updated);
-
-    // Save to database if it has an ID
-    const experience = experiences[index];
-    if (experience.id && user) {
-      try {
-        await updateUserExperience(experience.id, { [field]: value });
-      } catch (error) {
-        console.error('Error updating experience:', error);
-      }
-    }
-  };
-
-  const saveNewExperience = async (index: number) => {
-    const experience = experiences[index];
-    if (!experience.title || !experience.company || !user) return;
-
-    try {
-      const saved = await createUserExperience({
-        user_id: user.id,
-        title: experience.title,
-        company: experience.company,
-        location: experience.location,
-        start_date: experience.start_date,
-        end_date: experience.is_current ? null : experience.end_date,
-        is_current: experience.is_current,
-        description: experience.description
-      });
-
-      // Update the local state with the saved experience (including ID)
-      const updated = experiences.map((exp, i) => 
-        i === index ? { ...exp, id: saved.id } : exp
-      );
-      setExperiences(updated);
-    } catch (error) {
-      console.error('Error saving experience:', error);
-    }
-  };
-
-  const removeExperience = async (index: number) => {
-    const experience = experiences[index];
-    
-    if (experience.id) {
-      try {
-        await deleteUserExperience(experience.id);
-      } catch (error) {
-        console.error('Error deleting experience:', error);
-      }
-    }
-    
-    setExperiences(experiences.filter((_, i) => i !== index));
-  };
-
-  // Education functions
-  const addEducation = () => {
-    const newEducation: Education = {
-      degree: "",
-      institution: "",
-      location: "",
-      graduation_year: "",
-      description: ""
-    };
-    setEducation([...education, newEducation]);
-  };
-
-  const updateEducationItem = async (index: number, field: string, value: string) => {
-    const updated = education.map((edu, i) => 
-      i === index ? { ...edu, [field]: value } : edu
-    );
-    setEducation(updated);
-
-    const educationItem = education[index];
-    if (educationItem.id && user) {
-      try {
-        await updateUserEducation(educationItem.id, { [field]: value });
-      } catch (error) {
-        console.error('Error updating education:', error);
-      }
-    }
-  };
-
-  const saveNewEducation = async (index: number) => {
-    const educationItem = education[index];
-    if (!educationItem.degree || !educationItem.institution || !user) return;
-
-    try {
-      const saved = await createUserEducation({
-        user_id: user.id,
-        degree: educationItem.degree,
-        institution: educationItem.institution,
-        location: educationItem.location,
-        graduation_year: educationItem.graduation_year,
-        description: educationItem.description
-      });
-
-      const updated = education.map((edu, i) => 
-        i === index ? { ...edu, id: saved.id } : edu
-      );
-      setEducation(updated);
-    } catch (error) {
-      console.error('Error saving education:', error);
-    }
-  };
-
-  const removeEducation = async (index: number) => {
-    const educationItem = education[index];
-    
-    if (educationItem.id) {
-      try {
-        await deleteUserEducation(educationItem.id);
-      } catch (error) {
-        console.error('Error deleting education:', error);
-      }
-    }
-    
-    setEducation(education.filter((_, i) => i !== index));
-  };
-
-  // Skills functions
-  const addSkill = () => {
-    const newSkill: Skill = {
-      name: "",
-      level: "Intermediate"
-    };
-    setSkills([...skills, newSkill]);
-  };
-
-  const updateSkill = async (index: number, field: string, value: string) => {
-    const updated = skills.map((skill, i) => 
-      i === index ? { ...skill, [field]: value } : skill
-    );
-    setSkills(updated);
-
-    const skill = skills[index];
-    if (skill.id && user) {
-      try {
-        await updateUserSkill(skill.id, { [field]: value });
-      } catch (error) {
-        console.error('Error updating skill:', error);
-      }
-    }
-  };
-
-  const saveNewSkill = async (index: number) => {
-    const skill = skills[index];
-    if (!skill.name || !user) return;
-
-    try {
-      const saved = await createUserSkill({
-        user_id: user.id,
-        name: skill.name,
-        level: skill.level
-      });
-
-      const updated = skills.map((s, i) => 
-        i === index ? { ...s, id: saved.id } : s
-      );
-      setSkills(updated);
-    } catch (error) {
-      console.error('Error saving skill:', error);
-    }
-  };
-
-  const removeSkill = async (index: number) => {
-    const skill = skills[index];
-    
-    if (skill.id) {
-      try {
-        await deleteUserSkill(skill.id);
-      } catch (error) {
-        console.error('Error deleting skill:', error);
-      }
-    }
-    
-    setSkills(skills.filter((_, i) => i !== index));
-  };
-
-  const handleEnhanceSummary = async () => {
-    if (!profile?.professional_summary) return;
-    
-    setEnhancingSummary(true);
-    try {
-      const enhanced = await enhanceProfessionalSummary(
-        profile.professional_summary,
-        experiences.map(exp => ({
-          title: exp.title,
-          company: exp.company,
-          description: exp.description || ''
-        }))
-      );
-      await handleProfileUpdate('professional_summary', enhanced);
-    } catch (error) {
-      console.error('Error enhancing summary:', error);
-    } finally {
-      setEnhancingSummary(false);
-    }
-  };
-
-  const handleGenerateExperienceDescription = async (index: number) => {
-    const experience = experiences[index];
-    if (!experience.company || !experience.title) return;
-
-    setGeneratingExperience(index.toString());
-    try {
-      const description = await generateExperienceDescription(
-        experience.title,
-        experience.company,
-        experience.description || `Worked as ${experience.title} at ${experience.company}`
-      );
-      await updateExperience(index, 'description', description);
-    } catch (error) {
-      console.error('Error generating experience description:', error);
-    } finally {
-      setGeneratingExperience(null);
-    }
-  };
-
-  const handleSuggestSkills = async () => {
-    if (!profile || experiences.length === 0) return;
-
-    setSuggestingSkills(true);
-    try {
-      const experienceData = experiences
-        .filter(exp => exp.title && exp.company)
-        .map(exp => ({
-          title: exp.title,
-          company: exp.company,
-          description: exp.description || ''
+      if (profile) {
+        setCvData(prev => ({
+          ...prev,
+          personalInfo: {
+            fullName: profile.full_name || "",
+            email: profile.email || "",
+            phone: profile.phone || "",
+            location: profile.location || "",
+            professionalSummary: profile.professional_summary || ""
+          }
         }));
-      
-      const suggestedSkills = await suggestSkills(experienceData, jobDescription);
-      
-      // Add suggested skills that aren't already in the list
-      const existingSkillNames = skills.map(s => s.name.toLowerCase());
-      const newSkills = suggestedSkills
-        .filter(skill => !existingSkillNames.includes(skill.name.toLowerCase()))
-        .map(skill => ({
-          name: skill.name,
-          level: skill.level
-        }));
-      
-      setSkills([...skills, ...newSkills]);
-    } catch (error) {
-      console.error('Error suggesting skills:', error);
-    } finally {
-      setSuggestingSkills(false);
-    }
-  };
+      }
 
-  const handleGenerateCV = async () => {
-    if (!profile || !user) return;
-
-    setIsGenerating(true);
-    try {
-      const cvData: CVData = {
-        personalInfo: {
-          fullName: profile.full_name || '',
-          email: profile.email || '',
-          phone: profile.phone || '',
-          location: profile.location || '',
-          professionalSummary: profile.professional_summary || ''
-        },
+      setCvData(prev => ({
+        ...prev,
         experiences: experiences.map(exp => ({
           title: exp.title,
           company: exp.company,
-          location: exp.location || '',
+          location: exp.location || "",
           startDate: exp.start_date,
-          endDate: exp.is_current ? 'Present' : (exp.end_date || ''),
+          endDate: exp.end_date || "",
           isCurrent: exp.is_current,
-          description: exp.description || ''
+          description: exp.description || ""
         })),
         education: education.map(edu => ({
           degree: edu.degree,
           institution: edu.institution,
-          location: edu.location || '',
+          location: edu.location || "",
           graduationYear: edu.graduation_year,
-          description: edu.description || ''
+          description: edu.description || ""
         })),
         skills: skills.map(skill => ({
           name: skill.name,
           level: skill.level
         }))
-      };
-
-      const cv = await generateCV({ 
-        cvData, 
-        cvType: cvStyle,
-        jobDescription: jobDescription || undefined
-      });
-      
-      setGeneratedCV(cv);
-      
-      // Save to database
-      await createGeneratedCV({
-        user_id: user.id,
-        title: `CV - ${new Date().toLocaleDateString()}`,
-        content: cv,
-        job_description: jobDescription || null
-      });
-      
-      // Reload CVs
-      const updatedCVs = await getUserCVs(user.id);
-      setCvs(updatedCVs || []);
-      
+      }));
     } catch (error) {
-      console.error('Error generating CV:', error);
+      console.error('Error loading user data:', error);
+    }
+  };
+
+  const updateSectionCompleteness = () => {
+    setSections(prev => prev.map(section => {
+      let isComplete = false;
+      switch (section.id) {
+        case "personal":
+          isComplete = !!(cvData.personalInfo.fullName && cvData.personalInfo.email);
+          break;
+        case "experience":
+          isComplete = cvData.experiences.length > 0 && cvData.experiences.some(exp => exp.title && exp.company);
+          break;
+        case "education":
+          isComplete = cvData.education.length > 0 && cvData.education.some(edu => edu.degree && edu.institution);
+          break;
+        case "skills":
+          isComplete = cvData.skills.length > 0 && cvData.skills.some(skill => skill.name);
+          break;
+      }
+      return { ...section, isComplete };
+    }));
+  };
+
+  const handleEnhanceSummary = async () => {
+    if (!cvData.personalInfo.professionalSummary) return;
+
+    setIsEnhancing(true);
+    try {
+      const enhanced = await enhanceProfessionalSummary(
+        cvData.personalInfo.professionalSummary,
+        cvData.experiences
+      );
+
+      setCvData(prev => ({
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          professionalSummary: enhanced
+        }
+      }));
+    } catch (error) {
+      console.error('Error enhancing summary:', error);
+      alert('Failed to enhance summary. Please try again.');
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleGenerateExperience = async (index: number) => {
+    const experience = cvData.experiences[index];
+    if (!experience.title || !experience.company) return;
+
+    setIsGenerating(true);
+    try {
+      const enhanced = await generateExperienceDescription(
+        experience.title,
+        experience.company,
+        experience.description || `Worked as ${experience.title} at ${experience.company}`
+      );
+
+      setCvData(prev => ({
+        ...prev,
+        experiences: prev.experiences.map((exp, i) => 
+          i === index ? { ...exp, description: enhanced } : exp
+        )
+      }));
+    } catch (error) {
+      console.error('Error generating experience:', error);
+      alert('Failed to generate experience description. Please try again.');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const getCompletionStatus = () => {
-    const hasBasicInfo = profile?.full_name && profile?.email && profile?.phone;
-    const hasExperience = experiences.some(exp => exp.title && exp.company);
-    const hasEducation = education.some(edu => edu.degree && edu.institution);
-    const hasSkills = skills.some(skill => skill.name);
-    const hasSummary = profile?.professional_summary;
+  const handleSuggestSkills = async () => {
+    if (cvData.experiences.length === 0) return;
 
-    return {
-      personalInfo: hasBasicInfo,
-      experience: hasExperience,
-      education: hasEducation,
-      skills: hasSkills,
-      summary: hasSummary,
-      overall: hasBasicInfo && hasExperience && hasEducation && hasSkills && hasSummary
-    };
-  };
-
-  const copyToClipboard = async () => {
+    setIsGenerating(true);
     try {
-      await navigator.clipboard.writeText(generatedCV);
-      // Show success feedback
+      const suggested = await suggestSkills(cvData.experiences, jobDescription);
+      
+      // Add suggested skills that aren't already in the list
+      const existingSkillNames = cvData.skills.map(s => s.name.toLowerCase());
+      const newSkills = suggested.filter(s => !existingSkillNames.includes(s.name.toLowerCase()));
+      
+      setCvData(prev => ({
+        ...prev,
+        skills: [...prev.skills, ...newSkills]
+      }));
     } catch (error) {
-      console.error('Failed to copy:', error);
+      console.error('Error suggesting skills:', error);
+      alert('Failed to suggest skills. Please try again.');
+    } finally {
+      setIsGenerating(false);
     }
   };
 
-  const downloadCV = () => {
-    const blob = new Blob([generatedCV], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `CV-${profile?.full_name?.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const addExperience = () => {
+    setCvData(prev => ({
+      ...prev,
+      experiences: [...prev.experiences, {
+        title: "",
+        company: "",
+        location: "",
+        startDate: "",
+        endDate: "",
+        isCurrent: false,
+        description: ""
+      }]
+    }));
   };
 
-  const tabs = [
-    { id: "preview", label: "CV Preview", icon: Eye },
-    { id: "personal", label: "Personal Info", icon: User },
-    { id: "experience", label: "Experience", icon: Briefcase },
-    { id: "education", label: "Education", icon: GraduationCap },
-    { id: "skills", label: "Skills", icon: Award }
-  ];
+  const addEducation = () => {
+    setCvData(prev => ({
+      ...prev,
+      education: [...prev.education, {
+        degree: "",
+        institution: "",
+        location: "",
+        graduationYear: "",
+        description: ""
+      }]
+    }));
+  };
 
-  const completionStatus = getCompletionStatus();
+  const addSkill = () => {
+    setCvData(prev => ({
+      ...prev,
+      skills: [...prev.skills, { name: "", level: "Intermediate" }]
+    }));
+  };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading your CV data...</p>
-        </div>
-      </div>
-    );
-  }
+  const removeExperience = (index: number) => {
+    setCvData(prev => ({
+      ...prev,
+      experiences: prev.experiences.filter((_, i) => i !== index)
+    }));
+  };
+
+  const removeEducation = (index: number) => {
+    setCvData(prev => ({
+      ...prev,
+      education: prev.education.filter((_, i) => i !== index)
+    }));
+  };
+
+  const removeSkill = (index: number) => {
+    setCvData(prev => ({
+      ...prev,
+      skills: prev.skills.filter((_, i) => i !== index)
+    }));
+  };
+
+  const updatePersonalInfo = (field: string, value: string) => {
+    setCvData(prev => ({
+      ...prev,
+      personalInfo: { ...prev.personalInfo, [field]: value }
+    }));
+  };
+
+  const updateExperience = (index: number, field: string, value: any) => {
+    setCvData(prev => ({
+      ...prev,
+      experiences: prev.experiences.map((exp, i) => 
+        i === index ? { ...exp, [field]: value } : exp
+      )
+    }));
+  };
+
+  const updateEducation = (index: number, field: string, value: any) => {
+    setCvData(prev => ({
+      ...prev,
+      education: prev.education.map((edu, i) => 
+        i === index ? { ...edu, [field]: value } : edu
+      )
+    }));
+  };
+
+  const updateSkill = (index: number, field: string, value: any) => {
+    setCvData(prev => ({
+      ...prev,
+      skills: prev.skills.map((skill, i) => 
+        i === index ? { ...skill, [field]: value } : skill
+      )
+    }));
+  };
+
+  const getSkillLevelWidth = (level: string) => {
+    switch (level) {
+      case "Beginner": return "25%";
+      case "Intermediate": return "50%";
+      case "Advanced": return "75%";
+      case "Expert": return "100%";
+      default: return "50%";
+    }
+  };
+
+  const getSkillLevelColor = (level: string) => {
+    switch (level) {
+      case "Beginner": return "bg-red-400";
+      case "Intermediate": return "bg-yellow-400";
+      case "Advanced": return "bg-blue-400";
+      case "Expert": return "bg-green-400";
+      default: return "bg-gray-400";
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Link 
-              href="/dashboard"
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-800 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Back to Dashboard
-            </Link>
-            <div className="h-6 w-px bg-gray-300" />
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-2">
-              <FileText className="w-8 h-8 text-blue-600" />
-              CV Builder
-            </h1>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {/* CV Style Selector */}
-            <select
-              value={cvStyle}
-              onChange={(e) => setCvStyle(e.target.value as any)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="professional">Professional</option>
-              <option value="creative">Creative</option>
-              <option value="technical">Technical</option>
-              <option value="executive">Executive</option>
-            </select>
+    <div className="min-h-screen bg-slate-50">
+      {/* Header */}
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-4">
+              <Link href="/dashboard" className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <ArrowLeft className="w-5 h-5 text-slate-600" />
+              </Link>
+              <div className="flex items-center space-x-3">
+                <FileText className="w-8 h-8 text-sky-500" />
+                <div>
+                  <h1 className="text-xl font-bold text-slate-900">CV Builder</h1>
+                  <p className="text-sm text-slate-600">Create your professional CV with AI</p>
+                </div>
+              </div>
+            </div>
             
-            {generatedCV && (
-              <>
-                <button
-                  onClick={copyToClipboard}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors border"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy
-                </button>
-                
-                <button
-                  onClick={downloadCV}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors border"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </button>
-              </>
-            )}
-            
-            <button
-              onClick={handleGenerateCV}
-              disabled={isGenerating || !profile}
-              className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isGenerating ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Sparkles className="w-4 h-4" />
-              )}
-              {isGenerating ? 'Generating...' : 'Generate CV'}
-            </button>
+            <div className="flex items-center space-x-3">
+              <button className="flex items-center space-x-2 px-4 py-2 text-slate-600 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">
+                <Download className="w-4 h-4" />
+                <span>Export PDF</span>
+              </button>
+            </div>
           </div>
         </div>
+      </header>
 
-        {/* Completion Status Banner */}
-        {!completionStatus.overall && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid lg:grid-cols-5 gap-8">
+          {/* Left Sidebar - Controls */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl border border-slate-200 p-6 sticky top-24 space-y-6">
               <div>
-                <h3 className="font-semibold text-amber-800">Complete your profile for better results</h3>
-                <p className="text-amber-700 text-sm mt-1">
-                  Missing sections: {[
-                    !completionStatus.personalInfo && 'Personal Info',
-                    !completionStatus.experience && 'Experience',
-                    !completionStatus.education && 'Education',
-                    !completionStatus.skills && 'Skills',
-                    !completionStatus.summary && 'Professional Summary'
-                  ].filter(Boolean).join(', ')}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm p-6 sticky top-8">
-              <nav className="space-y-2">
-                {tabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isComplete = tab.id === 'preview' || completionStatus[tab.id as keyof typeof completionStatus];
-                  
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id)}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
-                        activeTab === tab.id
-                          ? 'bg-blue-50 text-blue-700 border-l-4 border-blue-600'
-                          : 'text-gray-600 hover:bg-gray-50'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="flex-1">{tab.label}</span>
-                      {tab.id !== 'preview' && (
-                        <div className={`w-2 h-2 rounded-full ${
-                          isComplete ? 'bg-green-500' : 'bg-gray-300'
-                        }`} />
-                      )}
-                    </button>
-                  );
-                })}
-              </nav>
-              
-              {/* Job Description Input */}
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Target Job Description (Optional)
-                </label>
-                <textarea
-                  value={jobDescription}
-                  onChange={(e) => setJobDescription(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                  placeholder="Paste job description to tailor your CV..."
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-xl shadow-sm p-8">
-              <AnimatePresence mode="wait">
-                {activeTab === "preview" && (
-                  <motion.div
-                    key="preview"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="space-y-8"
+                <h2 className="font-semibold text-slate-900 mb-4">CV Customization</h2>
+                
+                {/* CV Style */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">CV Style</label>
+                  <select
+                    value={cvType}
+                    onChange={(e) => setCvType(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500"
                   >
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-800">CV Preview</h2>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-500">Style:</span>
-                        <span className="text-sm font-medium text-gray-700 capitalize">{cvStyle}</span>
-                      </div>
-                    </div>
+                    <option value="professional">Professional</option>
+                    <option value="creative">Creative</option>
+                    <option value="technical">Technical</option>
+                    <option value="executive">Executive</option>
+                  </select>
+                </div>
 
-                    {generatedCV ? (
-                      <div className="bg-gray-50 rounded-lg p-6 max-h-96 overflow-y-auto">
-                        <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono leading-relaxed">
-                          {generatedCV}
-                        </pre>
+                {/* Job Description */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Target Job (Optional)</label>
+                  <textarea
+                    rows={3}
+                    value={jobDescription}
+                    onChange={(e) => setJobDescription(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm"
+                    placeholder="Paste job description to tailor your CV..."
+                  />
+                </div>
+
+                {/* Section Status */}
+                <div>
+                  <h3 className="font-medium text-slate-900 mb-3">Section Status</h3>
+                  <div className="space-y-2">
+                    {sections.map((section) => (
+                      <div key={section.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50">
+                        <span className="text-sm text-slate-700">{section.title}</span>
+                        <div className="flex items-center space-x-2">
+                          {section.isComplete ? (
+                            <CheckCircle className="w-4 h-4 text-green-500" />
+                          ) : (
+                            <div className="w-4 h-4 border-2 border-slate-300 rounded-full" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* AI Actions */}
+                <div className="pt-4 border-t border-slate-200">
+                  <h3 className="font-medium text-slate-900 mb-3">AI Tools</h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleSuggestSkills}
+                      disabled={isGenerating || cvData.experiences.length === 0}
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors disabled:opacity-50"
+                    >
+                      <Zap className="w-4 h-4" />
+                      <span>Suggest Skills</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Side - CV Preview */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-lg overflow-hidden">
+              {/* CV Header */}
+              <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white p-8">
+                <div className="flex items-start space-x-6">
+                  <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
+                    <User className="w-12 h-12 text-white/80" />
+                  </div>
+                  <div className="flex-1">
+                    {editingSection === "personal" ? (
+                      <div className="space-y-3">
+                        <input
+                          type="text"
+                          value={cvData.personalInfo.fullName}
+                          onChange={(e) => updatePersonalInfo("fullName", e.target.value)}
+                          className="w-full bg-white/10 border border-white/20 rounded px-3 py-2 text-white placeholder-white/60"
+                          placeholder="Full Name"
+                        />
+                        <div className="grid grid-cols-2 gap-3">
+                          <input
+                            type="email"
+                            value={cvData.personalInfo.email}
+                            onChange={(e) => updatePersonalInfo("email", e.target.value)}
+                            className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white placeholder-white/60"
+                            placeholder="Email"
+                          />
+                          <input
+                            type="tel"
+                            value={cvData.personalInfo.phone}
+                            onChange={(e) => updatePersonalInfo("phone", e.target.value)}
+                            className="bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white placeholder-white/60"
+                            placeholder="Phone"
+                          />
+                        </div>
+                        <input
+                          type="text"
+                          value={cvData.personalInfo.location}
+                          onChange={(e) => updatePersonalInfo("location", e.target.value)}
+                          className="w-full bg-white/10 border border-white/20 rounded px-3 py-1 text-sm text-white placeholder-white/60"
+                          placeholder="Location"
+                        />
+                        <button
+                          onClick={() => setEditingSection(null)}
+                          className="px-3 py-1 bg-green-500 text-white rounded text-sm"
+                        >
+                          Done
+                        </button>
                       </div>
                     ) : (
-                      <div className="text-center py-12 text-gray-500">
-                        <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                        <h3 className="text-lg font-semibold text-gray-700 mb-2">No CV Generated Yet</h3>
-                        <p className="mb-4">Complete your profile sections and click "Generate CV" to see your professional CV.</p>
-                        <button
-                          onClick={handleGenerateCV}
-                          disabled={!profile}
-                          className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                          Generate Your First CV
-                        </button>
+                      <div className="group cursor-pointer" onClick={() => setEditingSection("personal")}>
+                        <h1 className="text-3xl font-bold mb-2 group-hover:text-blue-200 transition-colors">
+                          {cvData.personalInfo.fullName || "Your Name"}
+                          <Edit3 className="inline w-5 h-5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </h1>
+                        <div className="space-y-1 text-white/80">
+                          <div className="flex items-center space-x-4">
+                            <div className="flex items-center space-x-1">
+                              <Mail className="w-4 h-4" />
+                              <span>{cvData.personalInfo.email || "email@example.com"}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Phone className="w-4 h-4" />
+                              <span>{cvData.personalInfo.phone || "+27 XX XXX XXXX"}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <MapPin className="w-4 h-4" />
+                            <span>{cvData.personalInfo.location || "City, Province"}</span>
+                          </div>
+                        </div>
                       </div>
                     )}
-                  </motion.div>
-                )}
+                  </div>
+                </div>
+              </div>
 
-                {activeTab === "personal" && (
-                  <motion.div
-                    key="personal"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="space-y-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-800">Personal Information</h2>
-                      <div className="flex items-center gap-2">
-                        {completionStatus.personalInfo ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
+              {/* CV Body */}
+              <div className="p-8 space-y-8">
+                {/* Professional Summary */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center">
+                      <User className="w-5 h-5 mr-2 text-sky-500" />
+                      Professional Summary
+                    </h2>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={handleEnhanceSummary}
+                        disabled={isEnhancing || !cvData.personalInfo.professionalSummary}
+                        className="flex items-center space-x-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors disabled:opacity-50"
+                      >
+                        {isEnhancing ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
                         ) : (
-                          <AlertCircle className="w-5 h-5 text-amber-500" />
+                          <Sparkles className="w-3 h-3" />
                         )}
-                      </div>
+                        <span>Enhance</span>
+                      </button>
                     </div>
-
-                    {/* Profile Image Section */}
-                    <div className="flex items-center gap-6 p-4 bg-gray-50 rounded-lg">
-                      <div className="relative">
-                        {profile?.profile_image_url ? (
-                          <Image
-                            src={profile.profile_image_url}
-                            alt="Profile"
-                            width={80}
-                            height={80}
-                            className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-md"
-                          />
-                        ) : (
-                          <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center border-4 border-white shadow-md">
-                            <User className="w-8 h-8 text-gray-400" />
-                          </div>
-                        )}
-                        <button className="absolute -bottom-1 -right-1 p-1.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors">
-                          <Camera className="w-3 h-3" />
-                        </button>
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-800">Profile Photo</h3>
-                        <p className="text-sm text-gray-600">Add a professional headshot to make your CV stand out</p>
-                        <Link href="/onboarding" className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1 mt-1">
-                          Update in profile <ExternalLink className="w-3 h-3" />
-                        </Link>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Full Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={profile?.full_name || ''}
-                          onChange={(e) => handleProfileUpdate('full_name', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Enter your full name"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Email *
-                        </label>
-                        <input
-                          type="email"
-                          value={profile?.email || ''}
-                          onChange={(e) => handleProfileUpdate('email', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Enter your email"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Phone *
-                        </label>
-                        <input
-                          type="tel"
-                          value={profile?.phone || ''}
-                          onChange={(e) => handleProfileUpdate('phone', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Enter your phone number"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Location
-                        </label>
-                        <input
-                          type="text"
-                          value={profile?.location || ''}
-                          onChange={(e) => handleProfileUpdate('location', e.target.value)}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Enter your location"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Professional Summary
-                        </label>
-                        <button
-                          onClick={handleEnhanceSummary}
-                          disabled={enhancingSummary || !profile?.professional_summary}
-                          className="flex items-center gap-1 px-3 py-1 text-sm bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors disabled:opacity-50"
-                        >
-                          {enhancingSummary ? (
-                            <Loader2 className="w-3 h-3 animate-spin" />
-                          ) : (
-                            <Wand2 className="w-3 h-3" />
-                          )}
-                          Enhance with AI
-                        </button>
-                      </div>
+                  </div>
+                  {editingSection === "summary" ? (
+                    <div className="space-y-3">
                       <textarea
-                        value={profile?.professional_summary || ''}
-                        onChange={(e) => handleProfileUpdate('professional_summary', e.target.value)}
                         rows={4}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Write a brief professional summary about yourself..."
+                        value={cvData.personalInfo.professionalSummary}
+                        onChange={(e) => updatePersonalInfo("professionalSummary", e.target.value)}
+                        className="w-full border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                        placeholder="Write your professional summary..."
                       />
-                      {!profile?.professional_summary && (
-                        <p className="text-sm text-amber-600 mt-1">
-                          A professional summary helps employers understand your value proposition
-                        </p>
-                      )}
+                      <button
+                        onClick={() => setEditingSection(null)}
+                        className="px-3 py-1 bg-green-500 text-white rounded text-sm"
+                      >
+                        Done
+                      </button>
                     </div>
-                  </motion.div>
-                )}
+                  ) : (
+                    <div 
+                      className="group cursor-pointer p-3 rounded-lg hover:bg-slate-50 transition-colors"
+                      onClick={() => setEditingSection("summary")}
+                    >
+                      <p className="text-slate-700 leading-relaxed group-hover:text-slate-900">
+                        {cvData.personalInfo.professionalSummary || "Click to add your professional summary..."}
+                        <Edit3 className="inline w-4 h-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </p>
+                    </div>
+                  )}
+                </div>
 
-                {activeTab === "experience" && (
-                  <motion.div
-                    key="experience"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="space-y-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-800">Work Experience</h2>
-                      <div className="flex items-center gap-3">
-                        {completionStatus.experience ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <AlertCircle className="w-5 h-5 text-amber-500" />
-                        )}
+                {/* Work Experience */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center">
+                      <Briefcase className="w-5 h-5 mr-2 text-sky-500" />
+                      Work Experience
+                    </h2>
+                    <button
+                      onClick={addExperience}
+                      className="flex items-center space-x-1 px-2 py-1 text-xs bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                  <div className="space-y-6">
+                    {cvData.experiences.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500">
+                        <Briefcase className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                        <p>No work experience added yet</p>
                         <button
                           onClick={addExperience}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="mt-2 text-sky-500 hover:text-sky-600"
                         >
-                          <Plus className="w-4 h-4" />
-                          Add Experience
+                          Add your first experience
                         </button>
                       </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      {experiences.map((experience, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-gray-800">
-                              {experience.title || `Experience #${index + 1}`}
-                            </h3>
-                            <div className="flex items-center gap-2">
-                              {!experience.id && experience.title && experience.company && (
-                                <button
-                                  onClick={() => saveNewExperience(index)}
-                                  className="text-green-600 hover:text-green-800 transition-colors"
-                                >
-                                  <Save className="w-4 h-4" />
-                                </button>
-                              )}
+                    ) : (
+                      cvData.experiences.map((exp, index) => (
+                        <div key={index} className="border-l-4 border-sky-500 pl-4 relative group">
+                          <div className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex space-x-1">
+                              <button
+                                onClick={() => handleGenerateExperience(index)}
+                                disabled={isGenerating}
+                                className="p-1 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 transition-colors"
+                              >
+                                <Sparkles className="w-3 h-3" />
+                              </button>
                               <button
                                 onClick={() => removeExperience(index)}
-                                className="text-red-600 hover:text-red-800 transition-colors"
+                                className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
                           </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Job Title *
-                              </label>
-                              <input
-                                type="text"
-                                value={experience.title}
-                                onChange={(e) => updateExperience(index, 'title', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="e.g., Software Engineer"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Company *
-                              </label>
-                              <input
-                                type="text"
-                                value={experience.company}
-                                onChange={(e) => updateExperience(index, 'company', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Company name"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Location
-                              </label>
-                              <input
-                                type="text"
-                                value={experience.location || ''}
-                                onChange={(e) => updateExperience(index, 'location', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="City, Country"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Start Date
-                              </label>
-                              <input
-                                type="month"
-                                value={experience.start_date}
-                                onChange={(e) => updateExperience(index, 'start_date', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              />
-                            </div>
-
-                            {!experience.is_current && (
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                  End Date
-                                </label>
+                          {editingSection === `experience-${index}` ? (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
                                 <input
-                                  type="month"
-                                  value={experience.end_date || ''}
-                                  onChange={(e) => updateExperience(index, 'end_date', e.target.value)}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                  type="text"
+                                  value={exp.title}
+                                  onChange={(e) => updateExperience(index, "title", e.target.value)}
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  placeholder="Job Title"
+                                />
+                                <input
+                                  type="text"
+                                  value={exp.company}
+                                  onChange={(e) => updateExperience(index, "company", e.target.value)}
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  placeholder="Company"
                                 />
                               </div>
-                            )}
-
-                            <div className="flex items-center">
-                              <label className="flex items-center gap-2">
+                              <div className="grid grid-cols-3 gap-3">
+                                <input
+                                  type="text"
+                                  value={exp.location}
+                                  onChange={(e) => updateExperience(index, "location", e.target.value)}
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  placeholder="Location"
+                                />
+                                <input
+                                  type="month"
+                                  value={exp.startDate}
+                                  onChange={(e) => updateExperience(index, "startDate", e.target.value)}
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                />
+                                {!exp.isCurrent && (
+                                  <input
+                                    type="month"
+                                    value={exp.endDate}
+                                    onChange={(e) => updateExperience(index, "endDate", e.target.value)}
+                                    className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  />
+                                )}
+                              </div>
+                              <label className="flex items-center space-x-2">
                                 <input
                                   type="checkbox"
-                                  checked={experience.is_current}
-                                  onChange={(e) => updateExperience(index, 'is_current', e.target.checked)}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  checked={exp.isCurrent}
+                                  onChange={(e) => updateExperience(index, "isCurrent", e.target.checked)}
+                                  className="rounded border-slate-300 text-sky-600 focus:ring-sky-500"
                                 />
-                                <span className="text-sm text-gray-700">Currently working here</span>
+                                <span className="text-sm">Currently working here</span>
                               </label>
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <label className="block text-sm font-medium text-gray-700">
-                                Description
-                              </label>
+                              <textarea
+                                rows={3}
+                                value={exp.description}
+                                onChange={(e) => updateExperience(index, "description", e.target.value)}
+                                className="w-full border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                placeholder="Describe your responsibilities and achievements..."
+                              />
                               <button
-                                onClick={() => handleGenerateExperienceDescription(index)}
-                                disabled={generatingExperience === index.toString() || !experience.company || !experience.title}
-                                className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors disabled:opacity-50"
+                                onClick={() => setEditingSection(null)}
+                                className="px-3 py-1 bg-green-500 text-white rounded text-sm"
                               >
-                                {generatingExperience === index.toString() ? (
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                ) : (
-                                  <Lightbulb className="w-3 h-3" />
-                                )}
-                                Generate with AI
+                                Done
                               </button>
                             </div>
-                            <textarea
-                              value={experience.description || ''}
-                              onChange={(e) => updateExperience(index, 'description', e.target.value)}
-                              rows={3}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Describe your responsibilities and achievements..."
-                            />
-                          </div>
+                          ) : (
+                            <div 
+                              className="cursor-pointer p-2 rounded hover:bg-slate-50 transition-colors"
+                              onClick={() => setEditingSection(`experience-${index}`)}
+                            >
+                              <div className="flex justify-between items-start mb-2">
+                                <div>
+                                  <h3 className="font-semibold text-slate-900">
+                                    {exp.title || "Job Title"}
+                                  </h3>
+                                  <div className="flex items-center space-x-2 text-slate-600">
+                                    <Building2 className="w-4 h-4" />
+                                    <span>{exp.company || "Company Name"}</span>
+                                    {exp.location && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{exp.location}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-1 text-sm text-slate-500">
+                                  <Calendar className="w-4 h-4" />
+                                  <span>
+                                    {exp.startDate} - {exp.isCurrent ? "Present" : exp.endDate}
+                                  </span>
+                                </div>
+                              </div>
+                              <p className="text-slate-700 text-sm leading-relaxed">
+                                {exp.description || "Click to add job description..."}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                      ))}
+                      ))
+                    )}
+                  </div>
+                </div>
 
-                      {experiences.length === 0 && (
-                        <div className="text-center py-12 text-gray-500">
-                          <Briefcase className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                          <p>No work experience added yet.</p>
-                          <p className="text-sm">Click "Add Experience" to get started.</p>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-
-                {activeTab === "education" && (
-                  <motion.div
-                    key="education"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="space-y-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-800">Education</h2>
-                      <div className="flex items-center gap-3">
-                        {completionStatus.education ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <AlertCircle className="w-5 h-5 text-amber-500" />
-                        )}
+                {/* Education */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center">
+                      <GraduationCap className="w-5 h-5 mr-2 text-sky-500" />
+                      Education
+                    </h2>
+                    <button
+                      onClick={addEducation}
+                      className="flex items-center space-x-1 px-2 py-1 text-xs bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                  <div className="space-y-4">
+                    {cvData.education.length === 0 ? (
+                      <div className="text-center py-8 text-slate-500">
+                        <GraduationCap className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                        <p>No education added yet</p>
                         <button
                           onClick={addEducation}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="mt-2 text-sky-500 hover:text-sky-600"
                         >
-                          <Plus className="w-4 h-4" />
-                          Add Education
+                          Add your education
                         </button>
                       </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      {education.map((edu, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg p-6">
-                          <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-semibold text-gray-800">
-                              {edu.degree || `Education #${index + 1}`}
-                            </h3>
-                            <div className="flex items-center gap-2">
-                              {!edu.id && edu.degree && edu.institution && (
-                                <button
-                                  onClick={() => saveNewEducation(index)}
-                                  className="text-green-600 hover:text-green-800 transition-colors"
-                                >
-                                  <Save className="w-4 h-4" />
-                                </button>
-                              )}
+                    ) : (
+                      cvData.education.map((edu, index) => (
+                        <div key={index} className="border-l-4 border-purple-500 pl-4 relative group">
+                          <div className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => removeEducation(index)}
+                              className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                          {editingSection === `education-${index}` ? (
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-2 gap-3">
+                                <input
+                                  type="text"
+                                  value={edu.degree}
+                                  onChange={(e) => updateEducation(index, "degree", e.target.value)}
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  placeholder="Degree"
+                                />
+                                <input
+                                  type="text"
+                                  value={edu.institution}
+                                  onChange={(e) => updateEducation(index, "institution", e.target.value)}
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  placeholder="Institution"
+                                />
+                              </div>
+                              <div className="grid grid-cols-2 gap-3">
+                                <input
+                                  type="text"
+                                  value={edu.location}
+                                  onChange={(e) => updateEducation(index, "location", e.target.value)}
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  placeholder="Location"
+                                />
+                                <input
+                                  type="text"
+                                  value={edu.graduationYear}
+                                  onChange={(e) => updateEducation(index, "graduationYear", e.target.value)}
+                                  className="border border-slate-200 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                  placeholder="Graduation Year"
+                                />
+                              </div>
                               <button
-                                onClick={() => removeEducation(index)}
-                                className="text-red-600 hover:text-red-800 transition-colors"
+                                onClick={() => setEditingSection(null)}
+                                className="px-3 py-1 bg-green-500 text-white rounded text-sm"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                Done
                               </button>
                             </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Degree/Qualification *
-                              </label>
-                              <input
-                                type="text"
-                                value={edu.degree}
-                                onChange={(e) => updateEducationItem(index, 'degree', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="e.g., Bachelor of Science in Computer Science"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Institution *
-                              </label>
-                              <input
-                                type="text"
-                                value={edu.institution}
-                                onChange={(e) => updateEducationItem(index, 'institution', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="University/School name"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Location
-                              </label>
-                              <input
-                                type="text"
-                                value={edu.location || ''}
-                                onChange={(e) => updateEducationItem(index, 'location', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="City, Country"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Graduation Year
-                              </label>
-                              <input
-                                type="text"
-                                value={edu.graduation_year}
-                                onChange={(e) => updateEducationItem(index, 'graduation_year', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="e.g., 2023"
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Description (Optional)
-                            </label>
-                            <textarea
-                              value={edu.description || ''}
-                              onChange={(e) => updateEducationItem(index, 'description', e.target.value)}
-                              rows={2}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Additional details about your education..."
-                            />
-                          </div>
-                        </div>
-                      ))}
-
-                      {education.length === 0 && (
-                        <div className="text-center py-12 text-gray-500">
-                          <GraduationCap className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                          <p>No education added yet.</p>
-                          <p className="text-sm">Click "Add Education" to get started.</p>
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-
-                {activeTab === "skills" && (
-                  <motion.div
-                    key="skills"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="space-y-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-bold text-gray-800">Skills</h2>
-                      <div className="flex items-center gap-3">
-                        {completionStatus.skills ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <AlertCircle className="w-5 h-5 text-amber-500" />
-                        )}
-                        <button
-                          onClick={handleSuggestSkills}
-                          disabled={suggestingSkills || experiences.length === 0}
-                          className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
-                        >
-                          {suggestingSkills ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <Lightbulb className="w-4 h-4" />
+                            <div 
+                              className="cursor-pointer p-2 rounded hover:bg-slate-50 transition-colors"
+                              onClick={() => setEditingSection(`education-${index}`)}
+                            >
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h3 className="font-semibold text-slate-900">
+                                    {edu.degree || "Degree"}
+                                  </h3>
+                                  <div className="flex items-center space-x-2 text-slate-600">
+                                    <Building2 className="w-4 h-4" />
+                                    <span>{edu.institution || "Institution"}</span>
+                                    {edu.location && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{edu.location}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                <span className="text-sm text-slate-500">{edu.graduationYear}</span>
+                              </div>
+                            </div>
                           )}
-                          Suggest Skills
-                        </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                {/* Skills */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center">
+                      <Award className="w-5 h-5 mr-2 text-sky-500" />
+                      Skills
+                    </h2>
+                    <button
+                      onClick={addSkill}
+                      className="flex items-center space-x-1 px-2 py-1 text-xs bg-sky-100 text-sky-700 rounded hover:bg-sky-200 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    {cvData.skills.length === 0 ? (
+                      <div className="col-span-2 text-center py-8 text-slate-500">
+                        <Award className="w-12 h-12 mx-auto mb-2 text-slate-300" />
+                        <p>No skills added yet</p>
                         <button
                           onClick={addSkill}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          className="mt-2 text-sky-500 hover:text-sky-600"
                         >
-                          <Plus className="w-4 h-4" />
-                          Add Skill
+                          Add your skills
                         </button>
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {skills.map((skill, index) => (
-                        <div key={index} className="border border-gray-200 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="font-semibold text-gray-800">
-                              {skill.name || `Skill #${index + 1}`}
-                            </h3>
-                            <div className="flex items-center gap-2">
-                              {!skill.id && skill.name && (
-                                <button
-                                  onClick={() => saveNewSkill(index)}
-                                  className="text-green-600 hover:text-green-800 transition-colors"
-                                >
-                                  <Save className="w-4 h-4" />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => removeSkill(index)}
-                                className="text-red-600 hover:text-red-800 transition-colors"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
+                    ) : (
+                      cvData.skills.map((skill, index) => (
+                        <div key={index} className="relative group">
+                          <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                            <button
+                              onClick={() => removeSkill(index)}
+                              className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
                           </div>
-
-                          <div className="space-y-3">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Skill Name *
-                              </label>
+                          {editingSection === `skill-${index}` ? (
+                            <div className="space-y-2 p-3 border border-slate-200 rounded-lg">
                               <input
                                 type="text"
                                 value={skill.name}
-                                onChange={(e) => updateSkill(index, 'name', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="e.g., JavaScript, Project Management"
+                                onChange={(e) => updateSkill(index, "name", e.target.value)}
+                                className="w-full border border-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                placeholder="Skill name"
                               />
-                            </div>
-
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Proficiency Level
-                              </label>
                               <select
                                 value={skill.level}
-                                onChange={(e) => updateSkill(index, 'level', e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                onChange={(e) => updateSkill(index, "level", e.target.value)}
+                                className="w-full border border-slate-200 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                               >
                                 <option value="Beginner">Beginner</option>
                                 <option value="Intermediate">Intermediate</option>
                                 <option value="Advanced">Advanced</option>
                                 <option value="Expert">Expert</option>
                               </select>
+                              <button
+                                onClick={() => setEditingSection(null)}
+                                className="px-2 py-1 bg-green-500 text-white rounded text-xs"
+                              >
+                                Done
+                              </button>
                             </div>
-                          </div>
+                          ) : (
+                            <div 
+                              className="p-3 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors"
+                              onClick={() => setEditingSection(`skill-${index}`)}
+                            >
+                              <div className="flex justify-between items-center mb-2">
+                                <span className="font-medium text-slate-900">
+                                  {skill.name || "Skill name"}
+                                </span>
+                                <span className="text-xs text-slate-500">{skill.level}</span>
+                              </div>
+                              <div className="w-full bg-slate-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all ${getSkillLevelColor(skill.level)}`}
+                                  style={{ width: getSkillLevelWidth(skill.level) }}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-
-                    {skills.length === 0 && (
-                      <div className="text-center py-12 text-gray-500">
-                        <Award className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                        <p>No skills added yet.</p>
-                        <p className="text-sm">Click "Add Skill" or "Suggest Skills" to get started.</p>
-                      </div>
+                      ))
                     )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
