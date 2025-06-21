@@ -61,19 +61,14 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
       .from('user_profiles')
       .select('*')
       .eq('user_id', userId)
-      .single();
+      .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 rows gracefully
 
     if (error) {
-      // Handle case where no rows are found (user doesn't have a profile yet)
-      if (error.code === 'PGRST116') {
-        return null;
-      }
-      // Handle case where table doesn't exist or other database errors
       console.error('Database error in getUserProfile:', error);
       throw error;
     }
 
-    return data;
+    return data; // Will be null if no rows found, which is what we want
   } catch (error) {
     console.error('Error fetching user profile:', error);
     // Return null for any error to allow onboarding to proceed
