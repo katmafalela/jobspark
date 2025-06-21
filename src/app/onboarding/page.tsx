@@ -16,10 +16,14 @@ import {
   Calendar,
   MapPin,
   Building2,
-  Star
+  Star,
+  Camera,
+  Upload,
+  X
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import Image from "next/image";
 import {
   createUserProfile,
   updateUserProfile,
@@ -35,6 +39,8 @@ interface PersonalInfo {
   phone: string;
   location: string;
   professionalSummary: string;
+  profileImage: File | null;
+  profileImageUrl: string;
 }
 
 interface Experience {
@@ -72,13 +78,16 @@ const OnboardingPage = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     personalInfo: {
       fullName: "",
       email: "",
       phone: "",
       location: "",
-      professionalSummary: ""
+      professionalSummary: "",
+      profileImage: null,
+      profileImageUrl: ""
     },
     experiences: [
       {
@@ -148,6 +157,55 @@ const OnboardingPage = () => {
     });
   };
 
+  const handleImageUpload = async (file: File) => {
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      // Create a preview URL
+      const previewUrl = URL.createObjectURL(file);
+      
+      setFormData(prev => ({
+        ...prev,
+        personalInfo: {
+          ...prev.personalInfo,
+          profileImage: file,
+          profileImageUrl: previewUrl
+        }
+      }));
+    } catch (error) {
+      console.error('Error handling image upload:', error);
+      alert('Failed to process image. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const removeProfileImage = () => {
+    if (formData.personalInfo.profileImageUrl) {
+      URL.revokeObjectURL(formData.personalInfo.profileImageUrl);
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      personalInfo: {
+        ...prev.personalInfo,
+        profileImage: null,
+        profileImageUrl: ""
+      }
+    }));
+  };
+
   const addItem = (section: keyof FormData) => {
     setFormData(prev => {
       let newItem: any;
@@ -211,6 +269,13 @@ const OnboardingPage = () => {
     }
   };
 
+  const uploadImageToSupabase = async (file: File): Promise<string | null> => {
+    // In a real implementation, you would upload to Supabase Storage
+    // For now, we'll return the preview URL
+    // This should be replaced with actual Supabase Storage upload
+    return formData.personalInfo.profileImageUrl;
+  };
+
   const handleComplete = async () => {
     if (!user) {
       console.error('No user found');
@@ -219,6 +284,12 @@ const OnboardingPage = () => {
     
     setIsLoading(true);
     try {
+      // Upload profile image if exists
+      let profileImageUrl = null;
+      if (formData.personalInfo.profileImage) {
+        profileImageUrl = await uploadImageToSupabase(formData.personalInfo.profileImage);
+      }
+
       // Check if profile exists
       let profile = null;
       try {
@@ -233,6 +304,7 @@ const OnboardingPage = () => {
         phone: formData.personalInfo.phone || null,
         location: formData.personalInfo.location || null,
         professional_summary: formData.personalInfo.professionalSummary || null,
+        profile_image_url: profileImageUrl,
         onboarding_completed: true
       };
 
@@ -288,6 +360,11 @@ const OnboardingPage = () => {
         }
       }
 
+      // Clean up any object URLs
+      if (formData.personalInfo.profileImageUrl) {
+        URL.revokeObjectURL(formData.personalInfo.profileImageUrl);
+      }
+
       router.push('/dashboard');
     } catch (error) {
       console.error('Error completing onboarding:', error);
@@ -299,6 +376,55 @@ const OnboardingPage = () => {
 
   const renderPersonalInfo = () => (
     <div className="space-y-8">
+      {/* Profile Image Upload */}
+      <div className="flex flex-col items-center space-y-4">
+        <div className="relative">
+          {formData.personalInfo.profileImageUrl ? (
+            <div className="relative">
+              <Image
+                src={formData.personalInfo.profileImageUrl}
+                alt="Profile preview"
+                width={120}
+                height={120}
+                className="w-30 h-30 rounded-full object-cover border-4 border-white shadow-lg"
+              />
+              <button
+                onClick={removeProfileImage}
+                className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="w-30 h-30 rounded-full bg-gray-200 flex items-center justify-center border-4 border-white shadow-lg">
+              <User className="w-12 h-12 text-gray-400" />
+            </div>
+          )}
+          
+          <label className="absolute -bottom-2 -right-2 p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors cursor-pointer">
+            <Camera className="w-4 h-4" />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleImageUpload(file);
+              }}
+              className="hidden"
+              disabled={uploadingImage}
+            />
+          </label>
+        </div>
+        
+        <div className="text-center">
+          <h3 className="font-semibold text-gray-800">Profile Photo</h3>
+          <p className="text-sm text-gray-600">Add a professional headshot (max 5MB)</p>
+          {uploadingImage && (
+            <p className="text-sm text-blue-600">Processing image...</p>
+          )}
+        </div>
+      </div>
+
       <div className="grid md:grid-cols-2 gap-6">
         <div className="space-y-2">
           <label className="block text-sm font-semibold text-slate-700">Full Name *</label>

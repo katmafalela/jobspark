@@ -8,6 +8,7 @@ export interface UserProfile {
   phone: string | null;
   location: string | null;
   professional_summary: string | null;
+  profile_image_url: string | null;
   onboarding_completed: boolean;
   created_at: string;
   updated_at: string;
