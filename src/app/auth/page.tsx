@@ -78,14 +78,15 @@ const AuthPage = () => {
 
       <div className="relative z-10 flex min-h-screen">
         {/* Left Side - Branding & Benefits */}
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-12 xl:px-16">
+        <div className="hidden lg:flex lg:w-2/5 flex-col justify-center px-8 xl:px-12 2xl:px-16">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
+            className="max-w-lg"
           >
             {/* Logo */}
-            <Link href="/" className="flex items-center space-x-3 mb-12 group">
+            <Link href="/" className="flex items-center space-x-3 mb-8 group">
               <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-slate-600 transition-colors" />
               <Sparkles className="w-8 h-8 text-sky-500 drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]" />
               <span className="text-2xl font-bold text-slate-900 tracking-tight">
@@ -93,7 +94,7 @@ const AuthPage = () => {
               </span>
             </Link>
 
-            <h1 className="text-5xl xl:text-6xl font-extrabold tracking-tighter text-slate-900 mb-6">
+            <h1 className="text-4xl xl:text-5xl 2xl:text-6xl font-extrabold tracking-tighter text-slate-900 mb-4">
               Your Career
               <br />
               <span className="bg-gradient-to-r from-sky-500 to-indigo-500 bg-clip-text text-transparent">
@@ -101,12 +102,12 @@ const AuthPage = () => {
               </span>
             </h1>
 
-            <p className="text-xl text-slate-600 mb-12 max-w-lg leading-relaxed">
+            <p className="text-lg xl:text-xl text-slate-600 mb-8 leading-relaxed">
               Join thousands of professionals who've accelerated their careers with AI-powered tools.
             </p>
 
             {/* Benefits */}
-            <div className="space-y-6">
+            <div className="space-y-4">
               {benefits.map((benefit, index) => (
                 <motion.div
                   key={benefit.text}
@@ -126,12 +127,12 @@ const AuthPage = () => {
         </div>
 
         {/* Right Side - Auth Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="w-full lg:w-3/5 flex items-center justify-center px-4 sm:px-6 lg:px-8 xl:px-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
-            className="w-full max-w-md"
+            className="w-full max-w-lg"
           >
             {/* Mobile Logo */}
             <div className="lg:hidden text-center mb-8">
@@ -144,9 +145,9 @@ const AuthPage = () => {
             </div>
 
             {/* Form Container */}
-            <div className="bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-8 shadow-2xl shadow-slate-400/10">
+            <div className="bg-white/80 backdrop-blur-xl border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-slate-400/10">
               {/* Form Header */}
-              <div className="text-center mb-8">
+              <div className="text-center mb-6">
                 <AnimatePresence mode="wait">
                   <motion.h2
                     key={isLogin ? "login" : "signup"}
@@ -154,12 +155,12 @@ const AuthPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 10 }}
                     transition={{ duration: 0.3 }}
-                    className="text-3xl font-bold text-slate-900 mb-2"
+                    className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2"
                   >
                     {isLogin ? "Welcome Back" : "Create Account"}
                   </motion.h2>
                 </AnimatePresence>
-                <p className="text-slate-600">
+                <p className="text-slate-600 text-sm sm:text-base">
                   {isLogin 
                     ? "Sign in to continue your career journey" 
                     : "Start your career transformation today"
@@ -168,7 +169,7 @@ const AuthPage = () => {
               </div>
 
               {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={isLogin ? "login-form" : "signup-form"}
@@ -176,7 +177,7 @@ const AuthPage = () => {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: isLogin ? 20 : -20 }}
                     transition={{ duration: 0.3 }}
-                    className="space-y-6"
+                    className="space-y-4"
                   >
                     {/* Name Field (Signup only) */}
                     {!isLogin && (
@@ -188,7 +189,7 @@ const AuthPage = () => {
                           value={formData.name}
                           onChange={handleInputChange}
                           placeholder="Full Name"
-                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500"
+                          className="w-full pl-12 pr-4 py-3 sm:py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500"
                           required={!isLogin}
                         />
                       </div>
@@ -203,7 +204,7 @@ const AuthPage = () => {
                         value={formData.email}
                         onChange={handleInputChange}
                         placeholder="Email Address"
-                        className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500"
+                        className="w-full pl-12 pr-4 py-3 sm:py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500"
                         required
                       />
                     </div>
@@ -217,7 +218,7 @@ const AuthPage = () => {
                         value={formData.password}
                         onChange={handleInputChange}
                         placeholder="Password"
-                        className="w-full pl-12 pr-12 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500"
+                        className="w-full pl-12 pr-12 py-3 sm:py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500"
                         required
                       />
                       <button
@@ -239,7 +240,7 @@ const AuthPage = () => {
                           value={formData.confirmPassword}
                           onChange={handleInputChange}
                           placeholder="Confirm Password"
-                          className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500"
+                          className="w-full pl-12 pr-4 py-3 sm:py-4 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all duration-200 text-slate-900 placeholder-slate-500"
                           required={!isLogin}
                         />
                       </div>
@@ -264,14 +265,14 @@ const AuthPage = () => {
                   type="submit"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full bg-slate-900 text-white py-4 rounded-xl font-semibold text-lg transition-all duration-200 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 flex items-center justify-center space-x-2 group"
+                  className="w-full bg-slate-900 text-white py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg transition-all duration-200 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 flex items-center justify-center space-x-2 group"
                 >
                   <span>{isLogin ? "Sign In" : "Create Account"}</span>
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </motion.button>
 
                 {/* Divider */}
-                <div className="relative my-8">
+                <div className="relative my-6">
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-slate-200" />
                   </div>
@@ -298,7 +299,7 @@ const AuthPage = () => {
 
                 {/* Toggle Mode */}
                 <div className="text-center pt-4">
-                  <p className="text-slate-600">
+                  <p className="text-slate-600 text-sm sm:text-base">
                     {isLogin ? "Don't have an account?" : "Already have an account?"}
                     <button
                       type="button"
@@ -318,7 +319,7 @@ const AuthPage = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
-                className="text-center text-sm text-slate-500 mt-6"
+                className="text-center text-xs sm:text-sm text-slate-500 mt-4"
               >
                 By creating an account, you agree to our{" "}
                 <a href="#" className="text-sky-500 hover:text-sky-600 transition-colors">
