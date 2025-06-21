@@ -126,7 +126,7 @@ export const Features = () => {
   }, [isHovered]);
 
   return (
-    <section className="py-24 bg-slate-50 relative">
+    <section id="features" className="py-24 bg-slate-50 relative">
         <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:2.5rem_2.5rem] opacity-50" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div

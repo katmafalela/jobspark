@@ -39,7 +39,7 @@ export const Testimonials = () => {
     };
 
     return (
-    <section className="py-24 bg-slate-50 relative overflow-hidden">
+    <section id="testimonials" className="py-24 bg-slate-50 relative overflow-hidden">
         <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:3rem_3rem] opacity-50" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, LayoutGrid, Tag, Info, ArrowRight } from "lucide-react";
+import { Sparkles, BarChart3, Users, Info, ArrowRight } from "lucide-react";
 import ShimmerButton from "../ui/ShimmerButton";
-import Image from "next/image"; // Import the Next.js Image component for optimization
+import Image from "next/image";
 
 export const Header = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -19,10 +19,18 @@ export const Header = () => {
   }, []);
 
   const navLinks = [
-    { name: "Features", href: "#", icon: LayoutGrid },
-    { name: "Pricing", href: "#", icon: Tag },
-    { name: "Company", href: "#", icon: Info },
+    { name: "Features", href: "#features", icon: BarChart3 },
+    { name: "How It Works", href: "#how-it-works", icon: Users },
+    { name: "Testimonials", href: "#testimonials", icon: Info },
   ];
+
+  const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    e.preventDefault();
+    const element = document.querySelector(href);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   const headerVariants = {
     initial: { y: -100, opacity: 0 },
@@ -31,7 +39,7 @@ export const Header = () => {
       opacity: 1,
       transition: {
         duration: 0.8,
-        ease: "circOut", // Corrected, valid easing function
+        ease: "circOut",
       },
     },
   };
@@ -68,7 +76,7 @@ export const Header = () => {
           </span>
         </a>
 
-        {/* Center: Navigation */}
+        {/* Center: Navigation - Hidden on mobile, shown on md+ */}
         <div
           className="hidden md:flex items-center space-x-1 bg-white/60 border border-slate-200/80 rounded-full px-2 shadow-sm"
           onMouseLeave={() => setHoveredLink("")}
@@ -77,7 +85,8 @@ export const Header = () => {
             <a
               key={link.name}
               href={link.href}
-              className="relative font-medium text-slate-600 hover:text-slate-900 transition-colors px-4 py-2 rounded-full"
+              onClick={(e) => handleNavClick(e, link.href)}
+              className="relative font-medium text-slate-600 hover:text-slate-900 transition-colors px-4 py-2 rounded-full group"
               onMouseEnter={() => setHoveredLink(link.name)}
             >
               <span className="relative z-10 flex items-center">
